@@ -19,18 +19,18 @@ const Auth = () => {
     const [signupPassword, setSignupPassword] = useState("");
     if (user)
         return <Navigate to="/dashboard" replace/>;
-    const handleLogin = (e) => {
+    const handleLogin = async (e) => {
         e.preventDefault();
-        if (login(loginEmail, loginPassword)) {
+      if (await login(loginEmail, loginPassword)) {
             navigate("/dashboard");
         }
         else {
             toast({ title: "Login failed", description: "Invalid email or password", variant: "destructive" });
         }
     };
-    const handleSignup = (e) => {
+    const handleSignup = async (e) => {
         e.preventDefault();
-        if (signup(signupName, signupEmail, signupPassword)) {
+      if (await signup(signupName, signupEmail, signupPassword)) {
         toast({ title: "Welcome to FitVerse!", description: "Account created successfully" });
             navigate("/dashboard");
         }

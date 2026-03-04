@@ -2,9 +2,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { LogOut, User, Menu } from "lucide-react";
+import { LogOut, User, Menu, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-const Navbar = ({ onToggleSidebar }) => {
+const Navbar = ({ onToggleSidebar, onToggleCollapse, collapsed }) => {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
     const handleLogout = () => {
@@ -14,8 +14,11 @@ const Navbar = ({ onToggleSidebar }) => {
     return (<header className="sticky top-0 z-50 border-b border-border bg-card/80 backdrop-blur-md">
       <div className="flex h-16 items-center justify-between px-4 md:px-6">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" className="md:hidden" onClick={onToggleSidebar}>
+          <Button variant="ghost" size="icon" className="lg:hidden" onClick={onToggleSidebar}>
             <Menu className="h-5 w-5"/>
+          </Button>
+          <Button variant="ghost" size="icon" className="hidden lg:inline-flex" onClick={onToggleCollapse}>
+            {collapsed ? <PanelLeftOpen className="h-5 w-5"/> : <PanelLeftClose className="h-5 w-5"/>}
           </Button>
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate("/dashboard")}>
             <img src="/Logo.png" alt="FitVerse logo" className="h-9 w-9 rounded-lg object-cover"/>

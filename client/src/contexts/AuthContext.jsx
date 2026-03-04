@@ -1,46 +1,119 @@
-import React, { createContext, useContext, useState, useCallback } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { apiRequest } from "@/lib/api";
 const AuthContext = createContext({});
 export const useAuth = () => useContext(AuthContext);
+
 export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(() => {
-        const saved = localStorage.getItem("fitforge_user");
-        return saved ? JSON.parse(saved) : null;
-    });
-    const login = useCallback((email, _password) => {
-        const users = JSON.parse(localStorage.getItem("fitforge_users") || "[]");
-        const found = users.find((u) => u.email === email);
-        if (found) {
-            setUser(found);
-            localStorage.setItem("fitforge_user", JSON.stringify(found));
+    const [user, setUser] = useState(null);
+    const [authLoading, setAuthLoading] = useState(true);
+
+    useEffect(() => {
+        localStorage.removeItem("fitforge_user");
+        localStorage.removeItem("fitforge_token");
+        localStorage.removeItem("fitforge_workouts");
+        localStorage.removeItem("fitforge_progress");
+        localStorage.removeItem("fitforge_meals");
+        localStorage.removeItem("fitforge_goal");
+        localStorage.removeItem("fitforge_posts");
+
+        const bootstrap = async () => {
+            try {
+                const res = await apiRequest("/auth/me");
+                setUser({
+                    id: res.data._id,
+                    name: res.data.name,
+                    email: res.data.email,
+                    age: res.data.age,
+                    height: res.data.height,
+                    weight: res.data.weight,
+                    goal: res.data.goal,
+                    avatarUrl: res.data.avatarUrl,
+                });
+            }
+            catch (_error) {
+                setUser(null);
+            }
+            finally {
+                setAuthLoading(false);
+            }
+        };
+
+        bootstrap();
+    }, []);
+
+    const login = useCallback(async (email, password) => {
+        try {
+            const res = await apiRequest("/auth/login", {
+                method: "POST",
+                body: JSON.stringify({ email, password }),
+            });
+
+            const nextUser = {
+                id: res.data.user.id,
+                name: res.data.user.name,
+                email: res.data.user.email,
+            };
+
+            setUser(nextUser);
             return true;
         }
-        return false;
-    }, []);
-    const signup = useCallback((name, email, _password) => {
-        const users = JSON.parse(localStorage.getItem("fitforge_users") || "[]");
-        if (users.find((u) => u.email === email))
+        catch (_error) {
             return false;
-        const newUser = { id: crypto.randomUUID(), name, email };
-        users.push(newUser);
-        localStorage.setItem("fitforge_users", JSON.stringify(users));
-        setUser(newUser);
-        localStorage.setItem("fitforge_user", JSON.stringify(newUser));
-        return true;
+        }
     }, []);
-    const logout = useCallback(() => {
+
+    const signup = useCallback(async (name, email, password) => {
+        try {
+            const res = await apiRequest("/auth/register", {
+                method: "POST",
+                body: JSON.stringify({ name, email, password }),
+            });
+
+            const nextUser = {
+                id: res.data.user.id,
+                name: res.data.user.name,
+                email: res.data.user.email,
+            };
+
+            setUser(nextUser);
+            return true;
+        }
+        catch (_error) {
+            return false;
+        }
+    }, []);
+
+    const logout = useCallback(async () => {
+        try {
+            await apiRequest("/auth/logout", { method: "POST" });
+        }
+        catch (_error) {
+        }
         setUser(null);
-        localStorage.removeItem("fitforge_user");
     }, []);
-    const updateProfile = useCallback((data) => {
-        setUser(prev => {
-            if (!prev)
-                return null;
-            const updated = { ...prev, ...data };
-            localStorage.setItem("fitforge_user", JSON.stringify(updated));
-            return updated;
+
+    const updateProfile = useCallback(async (data) => {
+        const res = await apiRequest("/users/profile", {
+            method: "PUT",
+            body: JSON.stringify(data),
         });
+
+        const updated = {
+            id: res.data._id,
+            name: res.data.name,
+            email: res.data.email,
+            age: res.data.age,
+            height: res.data.height,
+            weight: res.data.weight,
+            goal: res.data.goal,
+            avatarUrl: res.data.avatarUrl,
+        };
+
+        setUser(updated);
+        return updated;
     }, []);
-    return (<AuthContext.Provider value={{ user, login, signup, logout, updateProfile }}>
+
+        return (<AuthContext.Provider value={{ user, authLoading, login, signup, logout, updateProfile }}>
       {children}
     </AuthContext.Provider>);
 };
