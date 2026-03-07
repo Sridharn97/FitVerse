@@ -1,7 +1,7 @@
 const User = require('../models/User');
 
 const updateProfile = async (req, res) => {
-  const allowedFields = ['name', 'age', 'weight', 'height', 'goal', 'avatarUrl'];
+  const allowedFields = ['name', 'age', 'weight', 'height', 'goal', 'avatarUrl', 'isAnonymous'];
   const updates = {};
 
   allowedFields.forEach((field) => {

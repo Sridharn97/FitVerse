@@ -2,8 +2,8 @@ const CommunityPost = require('../models/CommunityPost');
 
 const getPosts = async (_req, res) => {
   const posts = await CommunityPost.find()
-    .populate('user', 'name avatarUrl')
-    .populate('comments.user', 'name avatarUrl')
+    .populate('user', 'name avatarUrl isAnonymous')
+    .populate('comments.user', 'name avatarUrl isAnonymous')
     .sort({ createdAt: -1 });
 
   res.status(200).json({ success: true, data: posts });
@@ -11,7 +11,7 @@ const getPosts = async (_req, res) => {
 
 const createPost = async (req, res) => {
   const post = await CommunityPost.create({ ...req.body, user: req.user._id });
-  const populated = await post.populate('user', 'name avatarUrl');
+  const populated = await post.populate('user', 'name avatarUrl isAnonymous');
 
   res.status(201).json({ success: true, message: 'Post created', data: populated });
 };
@@ -22,8 +22,8 @@ const updatePost = async (req, res) => {
     req.body,
     { new: true, runValidators: true }
   )
-    .populate('user', 'name avatarUrl')
-    .populate('comments.user', 'name avatarUrl');
+    .populate('user', 'name avatarUrl isAnonymous')
+    .populate('comments.user', 'name avatarUrl isAnonymous');
 
   if (!post) {
     return res.status(404).json({ success: false, message: 'Post not found' });
@@ -61,8 +61,8 @@ const toggleLike = async (req, res) => {
   await post.save();
 
   const populated = await CommunityPost.findById(post._id)
-    .populate('user', 'name avatarUrl')
-    .populate('comments.user', 'name avatarUrl');
+    .populate('user', 'name avatarUrl isAnonymous')
+    .populate('comments.user', 'name avatarUrl isAnonymous');
 
   res.status(200).json({ success: true, message: 'Like updated', data: populated });
 };
@@ -82,8 +82,8 @@ const addComment = async (req, res) => {
   await post.save();
 
   const populated = await CommunityPost.findById(post._id)
-    .populate('user', 'name avatarUrl')
-    .populate('comments.user', 'name avatarUrl');
+    .populate('user', 'name avatarUrl isAnonymous')
+    .populate('comments.user', 'name avatarUrl isAnonymous');
 
   res.status(201).json({ success: true, message: 'Comment added', data: populated });
 };

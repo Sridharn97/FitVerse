@@ -60,7 +60,7 @@ const toUiMeal = (meal) => ({
 const toUiPost = (post) => ({
     id: post._id,
     userId: post.user?._id,
-    userName: post.user?.name || "User",
+    userName: post.user?.isAnonymous ? "Anonymous" : (post.user?.name || "User"),
     title: post.title,
     content: post.content,
     category: post.category || "General",
@@ -68,7 +68,7 @@ const toUiPost = (post) => ({
     comments: (post.comments || []).map((comment) => ({
         id: comment._id,
         userId: comment.user?._id,
-        userName: comment.user?.name || "User",
+        userName: comment.user?.isAnonymous ? "Anonymous" : (comment.user?.name || "User"),
         content: comment.content,
         date: comment.createdAt,
     })),
@@ -238,12 +238,12 @@ export const FitnessProvider = ({ children }) => {
     }, []);
 
     return (<FitnessContext.Provider value={{
-            workouts, addWorkout, updateWorkout, deleteWorkout, toggleWorkoutComplete,
-            progress, addProgress,
-            meals, addMeal,
-            goal, setGoal,
-                        posts, addPost, likePost, addComment, deletePost, updatePost,
-        }}>
-      {children}
+        workouts, addWorkout, updateWorkout, deleteWorkout, toggleWorkoutComplete,
+        progress, addProgress,
+        meals, addMeal,
+        goal, setGoal,
+        posts, addPost, likePost, addComment, deletePost, updatePost,
+    }}>
+        {children}
     </FitnessContext.Provider>);
 };
