@@ -64,15 +64,10 @@ const Dashboard = () => {
     </div>
 
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      {stats.map(({ label, value, icon: Icon, color }) => (<Card key={label}>
-        <CardContent className="flex items-center gap-4 p-5">
-          <div className={`flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 ${color}`}>
-            <Icon className="h-6 w-6" />
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground">{label}</p>
-            <p className="text-2xl font-bold text-foreground">{value}</p>
-          </div>
+      {stats.map(({ label, value }) => (<Card key={label}>
+        <CardContent className="flex flex-col justify-center p-5">
+          <p className="text-sm font-medium text-muted-foreground">{label}</p>
+          <p className="text-3xl font-bold text-foreground mt-1">{value}</p>
         </CardContent>
       </Card>))}
     </div>
@@ -137,14 +132,9 @@ const Dashboard = () => {
     </div>
 
     {latestBmi && (<Card>
-      <CardContent className="flex items-center gap-4 p-5">
-        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-accent">
-          <TrendingUp className="h-6 w-6 text-accent-foreground" />
-        </div>
-        <div>
-          <p className="text-sm text-muted-foreground">Current BMI</p>
-          <p className="text-2xl font-bold text-foreground">{latestBmi}</p>
-        </div>
+      <CardContent className="flex flex-col justify-center p-5">
+        <p className="text-sm font-medium text-muted-foreground">Current BMI</p>
+        <p className="text-3xl font-bold text-foreground mt-1">{latestBmi}</p>
       </CardContent>
     </Card>)}
   </div>);

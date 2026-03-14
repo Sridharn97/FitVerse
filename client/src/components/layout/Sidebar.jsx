@@ -1,9 +1,10 @@
 import { NavLink } from "@/components/NavLink";
-import { LayoutDashboard, Dumbbell, TrendingUp, Apple, Users, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { LayoutDashboard, Dumbbell, TrendingUp, Apple, Users, X, ChevronLeft, ChevronRight, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 const links = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/workouts", label: "Workouts", icon: Dumbbell },
@@ -13,6 +14,13 @@ const links = [
 ];
 const Sidebar = ({ open, onClose, collapsed, onToggleCollapse, onOptionSelect }) => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { logout } = useAuth();
+
+  const handleLogout = () => {
+    logout();
+    navigate("/auth");
+  };
 
   const handleSidebarInteract = () => {
     if (typeof window === "undefined")
@@ -52,6 +60,16 @@ const Sidebar = ({ open, onClose, collapsed, onToggleCollapse, onOptionSelect })
           <span className={cn(collapsed && "lg:hidden")}>{label}</span>
         </NavLink>))}
       </nav>
+      <div className="mt-auto pt-4 flex flex-col gap-1">
+        <Button 
+          variant="ghost" 
+          onClick={handleLogout}
+          className={cn("flex w-full items-center justify-start gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10 hover:text-destructive", collapsed && "lg:justify-center lg:px-0")}
+        >
+          <LogOut className="h-5 w-5" />
+          <span className={cn(collapsed && "lg:hidden")}>Logout</span>
+        </Button>
+      </div>
     </aside>
   </>);
 };

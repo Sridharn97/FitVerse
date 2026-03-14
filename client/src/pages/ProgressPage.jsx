@@ -163,36 +163,21 @@ const ProgressPage = () => {
 
       <div className="grid gap-4 sm:grid-cols-3">
         <Card>
-          <CardContent className="flex items-center gap-4 p-5">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-              <Scale className="h-6 w-6 text-primary"/>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Current Weight</p>
-              <p className="text-2xl font-bold text-foreground">{latest?.weight ?? "N/A"} kg</p>
-            </div>
+          <CardContent className="flex flex-col justify-center p-5">
+            <p className="text-sm font-medium text-muted-foreground">Current Weight</p>
+            <p className="text-3xl font-bold text-foreground mt-1">{latest?.weight ?? "N/A"} kg</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="flex items-center gap-4 p-5">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-accent">
-              <Ruler className="h-6 w-6 text-accent-foreground"/>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">BMI</p>
-              <p className="text-2xl font-bold text-foreground">{latest?.bmi ?? "N/A"}</p>
-            </div>
+          <CardContent className="flex flex-col justify-center p-5">
+            <p className="text-sm font-medium text-muted-foreground">BMI</p>
+            <p className="text-3xl font-bold text-foreground mt-1">{latest?.bmi ?? "N/A"}</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="flex items-center gap-4 p-5">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-              <TrendingUp className="h-6 w-6 text-primary"/>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Entries</p>
-              <p className="text-2xl font-bold text-foreground">{filteredProgress.length}</p>
-            </div>
+          <CardContent className="flex flex-col justify-center p-5">
+            <p className="text-sm font-medium text-muted-foreground">Entries</p>
+            <p className="text-3xl font-bold text-foreground mt-1">{filteredProgress.length}</p>
           </CardContent>
         </Card>
       </div>

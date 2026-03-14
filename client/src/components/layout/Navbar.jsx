@@ -2,17 +2,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { LogOut, User, Menu, PanelLeftClose, PanelLeftOpen, Bell, Settings, Sparkles } from "lucide-react";
+import { User, Menu, PanelLeftClose, PanelLeftOpen, Bell, Settings } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const Navbar = ({ onToggleSidebar, onToggleCollapse, collapsed }) => {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
-
-  const handleLogout = () => {
-    logout();
-    navigate("/auth");
-  };
 
   return (<header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/60 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60 shadow-sm transition-all duration-300">
     <div className="flex h-16 items-center justify-between px-4 md:px-6 w-full mx-auto">
@@ -68,15 +63,6 @@ const Navbar = ({ onToggleSidebar, onToggleCollapse, collapsed }) => {
             <DropdownMenuItem onClick={() => navigate("/preferences")} className="cursor-pointer rounded-md py-2 focus:bg-primary/5 focus:text-primary transition-colors">
               <Settings className="mr-2 h-4 w-4" />
               <span>Preferences</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem className="cursor-pointer rounded-md py-2 focus:bg-primary/5 focus:text-primary transition-colors">
-              <Sparkles className="mr-2 h-4 w-4 text-amber-500 fill-amber-500/20" />
-              <span>Upgrade Plan</span>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator className="bg-border/50" />
-            <DropdownMenuItem onClick={handleLogout} className="cursor-pointer rounded-md py-2 text-destructive focus:bg-destructive/10 focus:text-destructive transition-colors">
-              <LogOut className="mr-2 h-4 w-4" />
-              <span>Logout</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
