@@ -105,7 +105,11 @@ export const FitnessProvider = ({ children }) => {
             setWorkouts((workoutsRes.data || []).map(toUiWorkout));
             setProgress((progressRes.data || []).map(toUiProgress).reverse());
             setMeals((mealsRes.data || []).map(toUiMeal));
-            setGoalState(goalRes.data ? { type: goalRes.data.type, targetCalories: goalRes.data.targetCalories } : null);
+            setGoalState(goalRes.data ? { 
+                type: goalRes.data.type, 
+                targetCalories: goalRes.data.targetCalories,
+                trackingMode: goalRes.data.trackingMode || 'static'
+            } : null);
             setPosts((postsRes.data || []).map(toUiPost));
         };
 
@@ -188,7 +192,11 @@ export const FitnessProvider = ({ children }) => {
             body: JSON.stringify(nextGoal),
         });
 
-        const saved = { type: res.data.type, targetCalories: res.data.targetCalories };
+        const saved = { 
+            type: res.data.type, 
+            targetCalories: res.data.targetCalories,
+            trackingMode: res.data.trackingMode || 'static'
+        };
         setGoalState(saved);
         return saved;
     }, []);

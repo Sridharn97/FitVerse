@@ -50,11 +50,11 @@ const getGoal = async (req, res) => {
 };
 
 const setGoal = async (req, res) => {
-  const { type, targetCalories } = req.body;
+  const { type, targetCalories, trackingMode } = req.body;
 
   const goal = await DietGoal.findOneAndUpdate(
     { user: req.user._id },
-    { type, targetCalories },
+    { type, targetCalories, trackingMode },
     { upsert: true, new: true, runValidators: true, setDefaultsOnInsert: true }
   );
 
@@ -63,7 +63,7 @@ const setGoal = async (req, res) => {
     {
       $set: {
         targetCalories,
-        notes: `Goal type: ${type}`,
+        notes: `Goal type: ${type}, Mode: ${trackingMode}`,
       },
       $setOnInsert: {
         user: req.user._id,

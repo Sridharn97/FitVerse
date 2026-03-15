@@ -33,6 +33,7 @@ router.route('/goal').get(protect, getGoal).put(
   [
     body('type').isIn(['weight_loss', 'muscle_gain', 'maintenance']).withMessage('Invalid goal type'),
     body('targetCalories').isNumeric().withMessage('Target calories must be a number'),
+    body('trackingMode').optional().isIn(['static', 'daily']).withMessage('Invalid tracking mode'),
   ],
   validateRequest,
   setGoal

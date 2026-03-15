@@ -15,6 +15,11 @@ const dietGoalSchema = new mongoose.Schema(
       default: 'maintenance',
     },
     targetCalories: { type: Number, required: true },
+    trackingMode: {
+      type: String,
+      enum: ['static', 'daily'],
+      default: 'static',
+    },
   },
   { timestamps: true }
 );

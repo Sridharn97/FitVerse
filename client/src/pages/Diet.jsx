@@ -32,23 +32,36 @@ const Diet = () => {
     const [carbs, setCarbs] = useState("");
     const [fat, setFat] = useState("");
     const [mealType, setMealType] = useState("breakfast");
-    const [goalType, setGoalType] = useState("maintenance");
+    const [goalType, setGoalType] = useState("muscle_gain");
     const [targetCals, setTargetCals] = useState("");
+    const [trackingMode, setTrackingMode] = useState("static");
     const [dateFilter, setDateFilter] = useState("this-month");
-    const today = format(new Date(), "yyyy-MM-dd");
+    
+    const todayStr = format(new Date(), "yyyy-MM-dd");
     const now = new Date();
+    
     const filterMonth = dateFilter === "this-month" ? now : subMonths(now, 1);
     const rangeStart = startOfMonth(filterMonth);
     const rangeEnd = endOfMonth(filterMonth);
+    
     const filteredMeals = meals.filter(m => isWithinInterval(new Date(m.date), { start: rangeStart, end: rangeEnd }));
+    const todayMeals = meals.filter(m => m.date === todayStr);
+    
     const periodCalories = filteredMeals.reduce((s, m) => s + m.calories, 0);
-    const periodProtein = filteredMeals.reduce((s, m) => s + m.protein, 0);
-    const periodCarbs = filteredMeals.reduce((s, m) => s + m.carbs, 0);
-    const periodFat = filteredMeals.reduce((s, m) => s + m.fat, 0);
+    const todayCalories = todayMeals.reduce((s, m) => s + m.calories, 0);
+    
     const handleAddMeal = () => {
         if (!mealName || !calories)
             return;
-        addMeal({ name: mealName, calories: +calories, protein: +protein || 0, carbs: +carbs || 0, fat: +fat || 0, date: today, mealType });
+        addMeal({ 
+            name: mealName, 
+            calories: +calories, 
+            protein: +protein || 0, 
+            carbs: +carbs || 0, 
+            fat: +fat || 0, 
+            date: todayStr, 
+            mealType 
+        });
         setMealName("");
         setCalories("");
         setProtein("");
@@ -60,17 +73,27 @@ const Diet = () => {
     const handleSetGoal = () => {
         if (!targetCals)
             return;
-        setGoal({ type: goalType, targetCalories: +targetCals });
+        setGoal({ 
+            type: goalType, 
+            targetCalories: +targetCals,
+            trackingMode: trackingMode
+        });
         setGoalOpen(false);
     };
-    const caloriePercent = goal ? Math.min((periodCalories / goal.targetCalories) * 100, 100) : 0;
-    const isOverTarget = goal ? periodCalories > goal.targetCalories : false;
-    const remaining = goal ? goal.targetCalories - periodCalories : 0;
-    const getMealsByType = (type) => filteredMeals.filter(m => m.mealType === type);
+    const periodProtein = filteredMeals.reduce((s, m) => s + m.protein, 0);
+    const periodCarbs = filteredMeals.reduce((s, m) => s + m.carbs, 0);
+    const periodFat = filteredMeals.reduce((s, m) => s + m.fat, 0);
+
+    const caloriePercent = goal ? Math.min((todayCalories / goal.targetCalories) * 100, 100) : 0;
+    const isOverTarget = goal ? todayCalories > goal.targetCalories : false;
+    const isCompleted = goal ? todayCalories >= goal.targetCalories : false;
+    const remaining = goal ? goal.targetCalories - todayCalories : 0;
+    
+    const getMealsByType = (type) => todayMeals.filter(m => m.mealType === type);
     const macroStats = [
-      { label: "Protein", value: periodProtein, unit: "g", icon: Beef, target: goal ? Math.round(goal.targetCalories * 0.3 / 4) : null },
-      { label: "Carbs", value: periodCarbs, unit: "g", icon: Wheat, target: goal ? Math.round(goal.targetCalories * 0.45 / 4) : null },
-      { label: "Fat", value: periodFat, unit: "g", icon: Droplets, target: goal ? Math.round(goal.targetCalories * 0.25 / 9) : null },
+      { label: "Protein", value: todayMeals.reduce((s, m) => s + m.protein, 0), unit: "g", icon: Beef, target: goal ? Math.round(goal.targetCalories * 0.3 / 4) : null },
+      { label: "Carbs", value: todayMeals.reduce((s, m) => s + m.carbs, 0), unit: "g", icon: Wheat, target: goal ? Math.round(goal.targetCalories * 0.45 / 4) : null },
+      { label: "Fat", value: todayMeals.reduce((s, m) => s + m.fat, 0), unit: "g", icon: Droplets, target: goal ? Math.round(goal.targetCalories * 0.25 / 9) : null },
     ];
     return (<div className="space-y-6">
       {/* Header */}
@@ -116,6 +139,21 @@ const Diet = () => {
                 <div className="space-y-2">
                   <Label>Daily Calorie Target (kcal)</Label>
                   <Input type="number" placeholder="e.g. 2000" className="h-11" value={targetCals} onChange={e => setTargetCals(e.target.value)}/>
+                </div>
+                <div className="space-y-2">
+                  <Label>Tracking Strategy</Label>
+                  <Select value={trackingMode} onValueChange={(v) => setTrackingMode(v)}>
+                    <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="static">Set once, track daily</SelectItem>
+                      <SelectItem value="daily">Day by day tracking</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[10px] text-muted-foreground px-1">
+                    {trackingMode === 'static' 
+                      ? "Your target stays consistent every day." 
+                      : "Manually adjust your target whenever you need."}
+                  </p>
                 </div>
                 <Button onClick={handleSetGoal} className="w-full h-11" disabled={!targetCals}>Save Goal</Button>
               </div>
@@ -176,36 +214,67 @@ const Diet = () => {
       </div>
 
       {/* Goal Progress Card */}
-      {goal ? (<Card className="border-primary/20 bg-card">
+      {goal ? (
+        <Card className={`relative overflow-hidden border-2 transition-all duration-500 ${isCompleted ? 'border-primary/40 bg-primary/5' : 'border-border'}`}>
+          {isCompleted && (
+            <div className="absolute top-0 right-0 p-1">
+              <div className="bg-primary text-primary-foreground text-[10px] font-bold px-2 py-0.5 rounded-bl-lg shadow-sm">
+                COMPLETED
+              </div>
+            </div>
+          )}
           <CardContent className="p-6">
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-                  <Target className="h-5 w-5 text-primary"/>
+            <div className="flex items-start justify-between mb-6">
+              <div className="flex items-center gap-4">
+                <div className={`flex h-12 w-12 items-center justify-center rounded-2xl transition-colors duration-500 ${isCompleted ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+                  {isCompleted ? <CheckCircle className="h-6 w-6" /> : <Flame className="h-6 w-6" />}
                 </div>
                 <div>
-                  <p className="font-semibold text-foreground">Daily Calorie Goal</p>
-                  <p className="text-sm text-muted-foreground">{goalLabels[goal.type]}</p>
+                  <h3 className="text-lg font-bold text-foreground">Today's Calorie Intake</h3>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Badge variant="outline" className="text-[10px] font-bold py-0">{goalLabels[goal.type]}</Badge>
+                    <span>•</span>
+                    <span className="capitalize">{goal.trackingMode || 'Static'} Mode</span>
+                  </div>
                 </div>
               </div>
-              <Badge variant={isOverTarget ? "destructive" : "secondary"} className="text-xs">
-                {isOverTarget ? "Over Target" : remaining > 0 ? `${remaining} kcal left` : "Goal Reached"}
-              </Badge>
-            </div>
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Progress</span>
-                <span className="font-medium text-foreground">{periodCalories} / {goal.targetCalories} kcal</span>
+              <div className="text-right">
+                <p className={`text-2xl font-black ${isOverTarget ? 'text-destructive' : isCompleted ? 'text-primary' : 'text-foreground'}`}>
+                  {todayCalories.toLocaleString()}
+                </p>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                  of {goal.targetCalories.toLocaleString()} kcal
+                </p>
               </div>
-              <Progress value={caloriePercent} className="h-2.5"/>
-              <p className="text-xs text-muted-foreground text-right">{Math.round(caloriePercent)}% of daily target</p>
             </div>
-            {isOverTarget && (<div className="flex items-center gap-2 mt-3 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
-                <AlertTriangle className="h-4 w-4 shrink-0"/>
-                <span>You have exceeded your calorie target by {periodCalories - goal.targetCalories} kcal.</span>
-              </div>)}
+
+            <div className="space-y-3">
+              <Progress value={caloriePercent} className={`h-3 rounded-full transition-all duration-1000 ${isOverTarget ? '[&>div]:bg-destructive' : ''}`} />
+              
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  {isOverTarget ? (
+                    <Badge variant="destructive" className="animate-pulse">
+                      <AlertTriangle className="mr-1 h-3 w-3" /> Over by {(todayCalories - goal.targetCalories).toLocaleString()} kcal
+                    </Badge>
+                  ) : isCompleted ? (
+                    <Badge className="bg-primary hover:bg-primary text-primary-foreground">
+                      <CheckCircle className="mr-1 h-3 w-3" /> Goal Accomplished
+                    </Badge>
+                  ) : (
+                    <p className="text-xs text-muted-foreground font-medium">
+                      Keep going! <span className="text-foreground">{remaining.toLocaleString()} kcal</span> left for today.
+                    </p>
+                  )}
+                </div>
+                <p className="text-xs font-bold text-muted-foreground">
+                  {Math.round(caloriePercent)}%
+                </p>
+              </div>
+            </div>
           </CardContent>
-        </Card>) : (<Card className="border-dashed border-border">
+        </Card>
+      ) : (<Card className="border-dashed border-border">
           <CardContent className="flex flex-col items-center justify-center py-10 text-center">
             <Target className="h-10 w-10 text-muted-foreground mb-3"/>
             <p className="font-medium text-foreground">No goal set yet</p>
