@@ -10,7 +10,9 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Plus, Target, Flame, Coffee, Sun, Moon, Cookie, Beef, Wheat, Droplets, TrendingUp, AlertTriangle, CheckCircle, } from "lucide-react";
-import { endOfMonth, format, isWithinInterval, startOfMonth, subMonths } from "date-fns";
+import { format, isWithinInterval, differenceInDays, startOfDay, isBefore } from "date-fns";
+import { DateFilter } from "@/components/shared/DateFilter";
+import { getDateRange, formatFilterLabel } from "@/lib/date-utils";
 const mealTypeConfig = {
     breakfast: { label: "Breakfast", icon: Coffee },
     lunch: { label: "Lunch", icon: Sun },
@@ -35,19 +37,22 @@ const Diet = () => {
     const [goalType, setGoalType] = useState("muscle_gain");
     const [targetCals, setTargetCals] = useState("");
     const [trackingMode, setTrackingMode] = useState("static");
-    const [dateFilter, setDateFilter] = useState("this-month");
+    const [dateFilter, setDateFilter] = useState("today");
     
     const todayStr = format(new Date(), "yyyy-MM-dd");
     const now = new Date();
+    const range = getDateRange(dateFilter, now);
+    const rangeStart = range.start;
+    const rangeEnd = range.end;
     
-    const filterMonth = dateFilter === "this-month" ? now : subMonths(now, 1);
-    const rangeStart = startOfMonth(filterMonth);
-    const rangeEnd = endOfMonth(filterMonth);
+    // Calculate days elapsed in the selected range to get an accurate daily average
+    const effectiveEnd = isBefore(now, rangeEnd) ? now : rangeEnd;
+    const daysCount = Math.max(1, differenceInDays(startOfDay(effectiveEnd), startOfDay(rangeStart)) + 1);
     
-    const filteredMeals = meals.filter(m => isWithinInterval(new Date(m.date), { start: rangeStart, end: rangeEnd }));
+    const activeMeals = meals.filter(m => isWithinInterval(new Date(m.date), { start: rangeStart, end: rangeEnd }));
     const todayMeals = meals.filter(m => m.date === todayStr);
     
-    const periodCalories = filteredMeals.reduce((s, m) => s + m.calories, 0);
+    const activeCalories = activeMeals.reduce((s, m) => s + m.calories, 0);
     const todayCalories = todayMeals.reduce((s, m) => s + m.calories, 0);
     
     const handleAddMeal = () => {
@@ -80,36 +85,37 @@ const Diet = () => {
         });
         setGoalOpen(false);
     };
-    const periodProtein = filteredMeals.reduce((s, m) => s + m.protein, 0);
-    const periodCarbs = filteredMeals.reduce((s, m) => s + m.carbs, 0);
-    const periodFat = filteredMeals.reduce((s, m) => s + m.fat, 0);
+    const periodProtein = activeMeals.reduce((s, m) => s + m.protein, 0);
+    const periodCarbs = activeMeals.reduce((s, m) => s + m.carbs, 0);
+    const periodFat = activeMeals.reduce((s, m) => s + m.fat, 0);
 
-    const caloriePercent = goal ? Math.min((todayCalories / goal.targetCalories) * 100, 100) : 0;
-    const isOverTarget = goal ? todayCalories > goal.targetCalories : false;
-    const isCompleted = goal ? todayCalories >= goal.targetCalories : false;
-    const remaining = goal ? goal.targetCalories - todayCalories : 0;
+    const isToday = dateFilter === "today";
+    const dailyAvgCalories = activeCalories / daysCount;
+    const dailyAvgProtein = periodProtein / daysCount;
+    const dailyAvgCarbs = periodCarbs / daysCount;
+    const dailyAvgFat = periodFat / daysCount;
+
+    const activeTarget = goal ? goal.targetCalories : 0;
+    const caloriePercent = activeTarget > 0 ? Math.min((dailyAvgCalories / activeTarget) * 100, 100) : 0;
+    const isOverTarget = activeTarget > 0 ? dailyAvgCalories > activeTarget : false;
+    const isCompleted = activeTarget > 0 ? dailyAvgCalories >= activeTarget : false;
+    const remaining = activeTarget - dailyAvgCalories;
     
-    const getMealsByType = (type) => todayMeals.filter(m => m.mealType === type);
+    const getMealsByType = (type) => activeMeals.filter(m => m.mealType === type);
     const macroStats = [
-      { label: "Protein", value: todayMeals.reduce((s, m) => s + m.protein, 0), unit: "g", icon: Beef, target: goal ? Math.round(goal.targetCalories * 0.3 / 4) : null },
-      { label: "Carbs", value: todayMeals.reduce((s, m) => s + m.carbs, 0), unit: "g", icon: Wheat, target: goal ? Math.round(goal.targetCalories * 0.45 / 4) : null },
-      { label: "Fat", value: todayMeals.reduce((s, m) => s + m.fat, 0), unit: "g", icon: Droplets, target: goal ? Math.round(goal.targetCalories * 0.25 / 9) : null },
+      { label: "Protein", value: Math.round(dailyAvgProtein), unit: "g", icon: Beef, target: goal ? Math.round(goal.targetCalories * 0.3 / 4) : null },
+      { label: "Carbs", value: Math.round(dailyAvgCarbs), unit: "g", icon: Wheat, target: goal ? Math.round(goal.targetCalories * 0.45 / 4) : null },
+      { label: "Fat", value: Math.round(dailyAvgFat), unit: "g", icon: Droplets, target: goal ? Math.round(goal.targetCalories * 0.25 / 9) : null },
     ];
     return (<div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground md:text-3xl">Diet & Goals</h1>
-          <p className="text-muted-foreground mt-1">Manage your nutrition and track daily intake</p>
+          <p className="text-muted-foreground mt-1">Tracking nutrition and goals for {formatFilterLabel(dateFilter)}</p>
         </div>
         <div className="flex gap-2">
-          <Select value={dateFilter} onValueChange={(v) => setDateFilter(v)}>
-            <SelectTrigger className="w-[150px]"><SelectValue placeholder="Date filter" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="this-month">This month</SelectItem>
-              <SelectItem value="last-month">Last month</SelectItem>
-            </SelectContent>
-          </Select>
+          <DateFilter value={dateFilter} onValueChange={setDateFilter} />
           <Dialog open={goalOpen} onOpenChange={setGoalOpen}>
             <DialogTrigger asChild>
               <Button variant="outline" size="sm"><Target className="mr-2 h-4 w-4"/> Set Goal</Button>
@@ -230,7 +236,9 @@ const Diet = () => {
                   {isCompleted ? <CheckCircle className="h-6 w-6" /> : <Flame className="h-6 w-6" />}
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-foreground">Today's Calorie Intake</h3>
+                  <h3 className="text-lg font-bold text-foreground">
+                    {isToday ? "Today's" : `${formatFilterLabel(dateFilter)} (Daily Avg)`} Intake
+                  </h3>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Badge variant="outline" className="text-[10px] font-bold py-0">{goalLabels[goal.type]}</Badge>
                     <span>•</span>
@@ -240,10 +248,10 @@ const Diet = () => {
               </div>
               <div className="text-right">
                 <p className={`text-2xl font-black ${isOverTarget ? 'text-destructive' : isCompleted ? 'text-primary' : 'text-foreground'}`}>
-                  {todayCalories.toLocaleString()}
+                  {Math.round(dailyAvgCalories).toLocaleString()}
                 </p>
                 <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                  of {goal.targetCalories.toLocaleString()} kcal
+                  of {activeTarget.toLocaleString()} kcal/day
                 </p>
               </div>
             </div>
@@ -255,7 +263,7 @@ const Diet = () => {
                 <div className="flex items-center gap-2">
                   {isOverTarget ? (
                     <Badge variant="destructive" className="animate-pulse">
-                      <AlertTriangle className="mr-1 h-3 w-3" /> Over by {(todayCalories - goal.targetCalories).toLocaleString()} kcal
+                      <AlertTriangle className="mr-1 h-3 w-3" /> Avg Over by {Math.round(dailyAvgCalories - activeTarget).toLocaleString()} kcal
                     </Badge>
                   ) : isCompleted ? (
                     <Badge className="bg-primary hover:bg-primary text-primary-foreground">
@@ -263,7 +271,7 @@ const Diet = () => {
                     </Badge>
                   ) : (
                     <p className="text-xs text-muted-foreground font-medium">
-                      Keep going! <span className="text-foreground">{remaining.toLocaleString()} kcal</span> left for today.
+                      <span className="text-foreground">{remaining.toLocaleString()} kcal</span> left to reach target.
                     </p>
                   )}
                 </div>
@@ -300,7 +308,7 @@ const Diet = () => {
                 </div>
                 {target && (<>
                     <Progress value={pct} className="h-1.5"/>
-                    <p className="text-xs text-muted-foreground mt-1.5">Target: {target}{unit}</p>
+                    <p className="text-xs text-muted-foreground mt-1.5">{isToday ? "Target" : "Daily Target"}: {target}{unit}</p>
                   </>)}
               </CardContent>
             </Card>);
@@ -336,8 +344,11 @@ const Diet = () => {
                   <div className="space-y-2">
                     {typeMeals.map(m => (<div key={m.id} className="flex items-center justify-between rounded-md bg-muted/10 border border-border/50 px-3 py-2.5">
                         <div className="flex items-center gap-2.5">
-                          <CheckCircle className="h-4 w-4 text-primary/60"/>
-                          <span className="text-sm font-medium text-foreground">{m.name}</span>
+                          <CheckCircle className="h-4 w-4 text-primary/60 shrink-0"/>
+                          <div className="flex flex-col">
+                            <span className="text-sm font-medium text-foreground">{m.name}</span>
+                            {dateFilter !== "today" && <span className="text-[10px] text-muted-foreground">{format(new Date(m.date), "MMM d")}</span>}
+                          </div>
                         </div>
                         <div className="flex items-center gap-4 text-xs text-muted-foreground">
                           <span className="font-medium text-foreground">{m.calories} kcal</span>

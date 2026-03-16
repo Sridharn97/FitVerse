@@ -14,7 +14,7 @@ const updateProgressEntry = async (req, res) => {
   const entry = await Progress.findOneAndUpdate(
     { _id: req.params.id, user: req.user._id },
     req.body,
-    { new: true, runValidators: true }
+    { returnDocument: 'after', runValidators: true }
   );
 
   if (!entry) {

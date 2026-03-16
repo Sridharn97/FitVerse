@@ -28,7 +28,7 @@ const createMeal = async (req, res) => {
         },
       },
     },
-    { upsert: true, new: true, setDefaultsOnInsert: true }
+    { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
   );
 
   res.status(201).json({ success: true, message: 'Meal logged', data: meal });
@@ -55,7 +55,7 @@ const setGoal = async (req, res) => {
   const goal = await DietGoal.findOneAndUpdate(
     { user: req.user._id },
     { type, targetCalories, trackingMode },
-    { upsert: true, new: true, runValidators: true, setDefaultsOnInsert: true }
+    { upsert: true, returnDocument: 'after', runValidators: true, setDefaultsOnInsert: true }
   );
 
   await DietPlan.findOneAndUpdate(
@@ -70,7 +70,7 @@ const setGoal = async (req, res) => {
         title: 'My Diet Plan',
       },
     },
-    { upsert: true, new: true, setDefaultsOnInsert: true }
+    { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
   );
 
   res.status(200).json({ success: true, message: 'Goal saved', data: goal });

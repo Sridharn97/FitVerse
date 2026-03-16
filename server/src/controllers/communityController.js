@@ -20,7 +20,7 @@ const updatePost = async (req, res) => {
   const post = await CommunityPost.findOneAndUpdate(
     { _id: req.params.id, user: req.user._id },
     req.body,
-    { new: true, runValidators: true }
+    { returnDocument: 'after', runValidators: true }
   )
     .populate('user', 'name avatarUrl isAnonymous')
     .populate('comments.user', 'name avatarUrl isAnonymous');

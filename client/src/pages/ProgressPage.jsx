@@ -10,7 +10,9 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { Plus, TrendingUp, Scale, Ruler, Activity } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { endOfMonth, format, isWithinInterval, startOfMonth, subMonths } from "date-fns";
+import { format, isWithinInterval } from "date-fns";
+import { DateFilter } from "@/components/shared/DateFilter";
+import { getDateRange } from "@/lib/date-utils";
 function getBmiCategory(bmi) {
     if (bmi < 18.5)
         return { label: "Underweight", color: "text-chart-4" };
@@ -47,9 +49,9 @@ const ProgressPage = () => {
         setOpen(false);
     };
     const now = new Date();
-    const filterMonth = dateFilter === "this-month" ? now : subMonths(now, 1);
-    const rangeStart = startOfMonth(filterMonth);
-    const rangeEnd = endOfMonth(filterMonth);
+    const range = getDateRange(dateFilter, now);
+    const rangeStart = range.start;
+    const rangeEnd = range.end;
     const filteredProgress = progress.filter(p => isWithinInterval(new Date(p.date), { start: rangeStart, end: rangeEnd }));
     const chartData = filteredProgress.map(p => ({
         date: format(new Date(p.date), "MMM dd"),
@@ -71,15 +73,7 @@ const ProgressPage = () => {
           <p className="text-muted-foreground mt-1">Track your body metrics</p>
         </div>
         <div className="flex items-center gap-2">
-          <Select value={dateFilter} onValueChange={setDateFilter}>
-            <SelectTrigger className="w-[150px]">
-              <SelectValue placeholder="Date filter" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="this-month">This month</SelectItem>
-              <SelectItem value="last-month">Last month</SelectItem>
-            </SelectContent>
-          </Select>
+          <DateFilter value={dateFilter} onValueChange={setDateFilter} />
           <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button><Plus className="mr-2 h-4 w-4"/> Log Progress</Button>

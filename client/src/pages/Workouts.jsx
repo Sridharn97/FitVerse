@@ -9,7 +9,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Trash2, Dumbbell } from "lucide-react";
-import { endOfMonth, format, isWithinInterval, startOfMonth, subMonths } from "date-fns";
+import { format, isWithinInterval } from "date-fns";
+import { DateFilter } from "@/components/shared/DateFilter";
+import { getDateRange } from "@/lib/date-utils";
 const EXERCISE_LIBRARY = [
   { name: "Bench Press", category: "Chest" },
   { name: "Squats", category: "Legs" },
@@ -63,9 +65,9 @@ const Workouts = () => {
     setOpen(false);
   };
   const now = new Date();
-  const filterMonth = dateFilter === "this-month" ? now : subMonths(now, 1);
-  const rangeStart = startOfMonth(filterMonth);
-  const rangeEnd = endOfMonth(filterMonth);
+  const range = getDateRange(dateFilter, now);
+  const rangeStart = range.start;
+  const rangeEnd = range.end;
   const dateFiltered = workouts.filter(w => isWithinInterval(new Date(w.date), { start: rangeStart, end: rangeEnd }));
   const filtered = filterDay === "all" ? dateFiltered : dateFiltered.filter(w => w.day === filterDay);
 
@@ -85,13 +87,7 @@ const Workouts = () => {
         <p className="text-muted-foreground mt-1">Manage your workout plans</p>
       </div>
       <div className="flex items-center gap-2">
-        <Select value={dateFilter} onValueChange={setDateFilter}>
-          <SelectTrigger className="w-[150px]"><SelectValue placeholder="Date filter" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="this-month">This month</SelectItem>
-            <SelectItem value="last-month">Last month</SelectItem>
-          </SelectContent>
-        </Select>
+        <DateFilter value={dateFilter} onValueChange={setDateFilter} />
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button><Plus className="mr-2 h-4 w-4" /> New Workout</Button>

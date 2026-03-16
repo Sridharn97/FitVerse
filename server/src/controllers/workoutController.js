@@ -14,7 +14,7 @@ const updateWorkout = async (req, res) => {
   const workout = await Workout.findOneAndUpdate(
     { _id: req.params.id, user: req.user._id },
     req.body,
-    { new: true, runValidators: true }
+    { returnDocument: 'after', runValidators: true }
   );
 
   if (!workout) {

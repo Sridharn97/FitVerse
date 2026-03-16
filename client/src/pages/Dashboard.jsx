@@ -12,14 +12,11 @@ import {
   PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from "recharts";
-import {
-  endOfMonth, format, isAfter, isWithinInterval,
-  startOfMonth, subDays, subMonths,
-} from "date-fns";
+import { format, isAfter, isWithinInterval, subDays, differenceInDays, startOfDay, isBefore } from "date-fns";
+import { DateFilter } from "@/components/shared/DateFilter";
+import { getDateRange, formatFilterLabel } from "@/lib/date-utils";
 
-/* ─────────────────────────────────────────────
-   Custom Tooltip shared style
-───────────────────────────────────────────── */
+
 const tooltipStyle = {
   backgroundColor: "hsl(var(--card))",
   border: "1px solid hsl(var(--border))",
@@ -86,10 +83,11 @@ const Dashboard = () => {
   const { user } = useAuth();
   const { workouts, progress, meals, goal } = useFitness();
 
-  const now = new Date();
-  const filterMonth = dateFilter === "this-month" ? now : subMonths(now, 1);
-  const rangeStart = startOfMonth(filterMonth);
-  const rangeEnd = endOfMonth(filterMonth);
+  const now = useMemo(() => new Date(), []);
+  const range = useMemo(() => getDateRange(dateFilter, now), [dateFilter, now]);
+
+  const rangeStart = range.start;
+  const rangeEnd = range.end;
 
   const filteredWorkouts = useMemo(
     () => workouts.filter((w) => isWithinInterval(new Date(w.date), { start: rangeStart, end: rangeEnd })),
@@ -112,6 +110,8 @@ const Dashboard = () => {
 
   const todayStr = format(now, "yyyy-MM-dd");
   const todayCalories = meals.filter(m => m.date === todayStr).reduce((sum, m) => sum + m.calories, 0);
+  const effectiveEnd = isBefore(now, rangeEnd) ? now : rangeEnd;
+  const daysCount = Math.max(1, differenceInDays(startOfDay(effectiveEnd), startOfDay(rangeStart)) + 1);
 
   const chartEnd = dateFilter === "this-month" ? now : rangeEnd;
 
@@ -171,9 +171,9 @@ const Dashboard = () => {
       accent: "hsl(var(--primary))",
     },
     {
-      label: "Today's Calories",
-      value: todayCalories.toLocaleString(),
-      sub: goal ? `Target: ${goal.targetCalories.toLocaleString()} kcal` : "No goal set",
+      label: dateFilter === "today" ? "Today's Calories" : `${formatFilterLabel(dateFilter)} (Daily Avg)`,
+      value: (dateFilter === "today" ? todayCalories : Math.round(rangeCalories / daysCount)).toLocaleString(),
+      sub: goal ? `Target: ${goal.targetCalories.toLocaleString()} kcal/day` : "No goal set",
       accent: "hsl(var(--destructive))",
     },
     {
@@ -199,18 +199,10 @@ const Dashboard = () => {
             Welcome back, <span className="text-primary">{user?.name}</span>
           </h1>
           <p className="text-muted-foreground mt-1 text-sm">
-            {format(filterMonth, "MMMM yyyy")} — Your fitness overview at a glance
+            {formatFilterLabel(dateFilter)} — Your fitness overview at a glance
           </p>
         </div>
-        <Select value={dateFilter} onValueChange={setDateFilter}>
-          <SelectTrigger className="w-[155px] shrink-0">
-            <SelectValue placeholder="Date filter" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="this-month">This Month</SelectItem>
-            <SelectItem value="last-month">Last Month</SelectItem>
-          </SelectContent>
-        </Select>
+        <DateFilter value={dateFilter} onValueChange={setDateFilter} />
       </div>
 
       {/* ── Stat Cards ── */}
@@ -222,9 +214,12 @@ const Dashboard = () => {
 
       {/* ── Goal Progress ── */}
       {goal && (() => {
-        const caloriePercent = Math.min((todayCalories / goal.targetCalories) * 100, 100);
-        const isCompleted = todayCalories >= goal.targetCalories;
-        const isOverTarget = todayCalories > goal.targetCalories;
+        const isToday = dateFilter === "today";
+        const activeCals = isToday ? todayCalories : (rangeCalories / daysCount);
+        const activeTarget = goal.targetCalories;
+        const caloriePercent = Math.min((activeCals / activeTarget) * 100, 100);
+        const isCompleted = activeCals >= activeTarget;
+        const isOverTarget = activeCals > activeTarget;
         const CheckCircle = ({ className }) => (
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
             <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
@@ -237,19 +232,19 @@ const Dashboard = () => {
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div>
                   <CardTitle className="text-base flex items-center gap-2">
-                     Today's Goal {isCompleted && <CheckCircle className="h-4 w-4 text-primary" />}
+                    {isToday ? "Today's Goal" : `${formatFilterLabel(dateFilter)} (Daily Avg)`} {isCompleted && <CheckCircle className="h-4 w-4 text-primary" />}
                   </CardTitle>
                   <CardDescription className="mt-0.5 capitalize">{goal.type.replace("_", " ")} • {goal.trackingMode || 'Static'}</CardDescription>
                 </div>
                 <Badge variant={isOverTarget ? "destructive" : isCompleted ? "default" : "secondary"} className={isCompleted && !isOverTarget ? "bg-primary text-primary-foreground" : ""}>
-                  {isOverTarget ? "Over Target" : isCompleted ? "Completed" : `${goal.targetCalories - todayCalories} kcal remaining`}
+                  {isOverTarget ? "Over Target" : isCompleted ? "Goal Met" : `${Math.round(activeTarget - activeCals)} kcal remaining`}
                 </Badge>
               </div>
             </CardHeader>
             <CardContent className="space-y-2">
               <div className="flex justify-between text-xs text-muted-foreground">
-                <span>{todayCalories.toLocaleString()} kcal consumed</span>
-                <span>{goal.targetCalories.toLocaleString()} kcal target</span>
+                <span>{Math.round(activeCals).toLocaleString()} kcal daily avg</span>
+                <span>{activeTarget.toLocaleString()} kcal target</span>
               </div>
               <Progress value={caloriePercent} className={`h-2.5 ${isOverTarget ? '[&>div]:bg-destructive' : ''}`} />
             </CardContent>
