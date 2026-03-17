@@ -14,14 +14,15 @@ const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const Preferences = () => {
     const { progress, meals, workouts } = useFitness();
-    const { updateProfile } = useAuth();
+    const { user, updateProfile } = useAuth();
     const { toast } = useToast();
 
     // Theme (Light, Dark, System)
     const [theme, setTheme] = useState(localStorage.getItem("fitverse_theme") || "system");
 
-    // Profile Visibility
-    const [isAnonymous, setIsAnonymous] = useState(localStorage.getItem("fitverse_anonymous") === "true");
+    // Profile Visibility — always sourced from the actual user object, not localStorage
+    // This prevents a new account from inheriting a previous session's anonymous setting
+    const [isAnonymous, setIsAnonymous] = useState(user?.isAnonymous ?? false);
 
     // Alerts
     const [alertsMentions, setAlertsMentions] = useState(localStorage.getItem("fitverse_alerts_mentions") !== "false");
@@ -34,6 +35,13 @@ const Preferences = () => {
         return stored ? JSON.parse(stored) : DAYS;
     });
     const [firstDayOfWeek, setFirstDayOfWeek] = useState(localStorage.getItem("fitverse_first_day") || "sun");
+
+    // Keep anonymous toggle in sync if the user object changes (e.g. after bootstrap)
+    useEffect(() => {
+        if (user) {
+            setIsAnonymous(user.isAnonymous ?? false);
+        }
+    }, [user?.isAnonymous]);
 
     useEffect(() => {
         localStorage.setItem("fitverse_theme", theme);
@@ -49,11 +57,14 @@ const Preferences = () => {
 
     const handleAnonymousToggle = async (val) => {
         setIsAnonymous(val);
-        localStorage.setItem("fitverse_anonymous", String(val));
         try {
             await updateProfile({ isAnonymous: val });
-        } catch (e) { }
-        toast({ title: "Preference Saved", description: "Anonymous posting updated." });
+            toast({ title: "Preference Saved", description: "Anonymous posting updated." });
+        } catch (e) {
+            // Revert toggle on failure
+            setIsAnonymous(!val);
+            toast({ title: "Update failed", description: "Could not save preference.", variant: "destructive" });
+        }
     };
 
     const handleDayToggle = (day) => {

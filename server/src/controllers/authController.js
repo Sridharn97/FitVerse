@@ -16,7 +16,7 @@ const register = async (req, res) => {
     return res.status(409).json({ success: false, message: 'Email already in use' });
   }
 
-  const user = await User.create({ name, email, password });
+  const user = await User.create({ name, email, password, isAnonymous: false });
   const token = generateToken(user._id);
 
   res.cookie('token', token, getCookieOptions());
@@ -29,6 +29,7 @@ const register = async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
+        isAnonymous: user.isAnonymous,
       },
     },
   });
@@ -59,6 +60,7 @@ const login = async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
+        isAnonymous: user.isAnonymous,
       },
     },
   });

@@ -60,7 +60,7 @@ const toUiMeal = (meal) => ({
 const toUiPost = (post) => ({
     id: post._id,
     userId: post.user?._id,
-    userName: post.user?.isAnonymous ? "Anonymous" : (post.user?.name || "User"),
+    userName: post.user?.isAnonymous === true ? "Anonymous" : (post.user?.name || "Anonymous"),
     title: post.title,
     content: post.content,
     category: post.category || "General",
@@ -68,7 +68,7 @@ const toUiPost = (post) => ({
     comments: (post.comments || []).map((comment) => ({
         id: comment._id,
         userId: comment.user?._id,
-        userName: comment.user?.isAnonymous ? "Anonymous" : (comment.user?.name || "User"),
+        userName: comment.user?.isAnonymous === true ? "Anonymous" : (comment.user?.name || "Anonymous"),
         content: comment.content,
         date: comment.createdAt,
     })),

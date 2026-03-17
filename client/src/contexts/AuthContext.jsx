@@ -1,6 +1,13 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { apiRequest } from "@/lib/api";
-const AuthContext = createContext({});
+const AuthContext = createContext({
+    user: null,
+    authLoading: true,
+    login: async () => false,
+    signup: async () => false,
+    logout: async () => {},
+    updateProfile: async () => {},
+});
 export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }) => {
@@ -28,6 +35,7 @@ export const AuthProvider = ({ children }) => {
                     weight: res.data.weight,
                     goal: res.data.goal,
                     avatarUrl: res.data.avatarUrl,
+                    isAnonymous: res.data.isAnonymous ?? false,
                 });
             }
             catch (_error) {
@@ -52,6 +60,7 @@ export const AuthProvider = ({ children }) => {
                 id: res.data.user.id,
                 name: res.data.user.name,
                 email: res.data.user.email,
+                isAnonymous: res.data.user.isAnonymous ?? false,
             };
 
             setUser(nextUser);
@@ -73,6 +82,7 @@ export const AuthProvider = ({ children }) => {
                 id: res.data.user.id,
                 name: res.data.user.name,
                 email: res.data.user.email,
+                isAnonymous: res.data.user.isAnonymous ?? false,
             };
 
             setUser(nextUser);
@@ -107,6 +117,7 @@ export const AuthProvider = ({ children }) => {
             weight: res.data.weight,
             goal: res.data.goal,
             avatarUrl: res.data.avatarUrl,
+            isAnonymous: res.data.isAnonymous ?? false,
         };
 
         setUser(updated);
