@@ -2,7 +2,7 @@ import { NavLink } from "@/components/NavLink";
 import { LayoutDashboard, Dumbbell, TrendingUp, Apple, Users, X, ChevronLeft, ChevronRight, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 const links = [
@@ -16,10 +16,18 @@ const Sidebar = ({ open, onClose, collapsed, onToggleCollapse, onOptionSelect })
   const location = useLocation();
   const navigate = useNavigate();
   const { logout } = useAuth();
+  const [loggingOut, setLoggingOut] = useState(false);
 
-  const handleLogout = () => {
-    logout();
-    navigate("/auth");
+  const handleLogout = async () => {
+    if (loggingOut)
+      return;
+    setLoggingOut(true);
+    try {
+      await logout();
+    } finally {
+      setLoggingOut(false);
+      navigate("/auth");
+    }
   };
 
   const handleSidebarInteract = () => {
@@ -64,6 +72,7 @@ const Sidebar = ({ open, onClose, collapsed, onToggleCollapse, onOptionSelect })
         <Button 
           variant="ghost" 
           onClick={handleLogout}
+          disabled={loggingOut}
           className={cn("flex w-full items-center justify-start gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10 hover:text-destructive", collapsed && "lg:justify-center lg:px-0")}
         >
           <LogOut className="h-5 w-5" />
