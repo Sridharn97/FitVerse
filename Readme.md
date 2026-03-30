@@ -114,6 +114,14 @@ Follow these instructions to set up the project locally for development and test
 4.  **Access the Application**:
     *   Open your browser and navigate to the local server address provided by Vite (typically `http://localhost:5173`).
 
+## ☁️ Deployment Note (Vercel + Render)
+
+If you deploy the frontend to Vercel and proxy `/api/*` to a backend hosted on Render, the *first* login/signup request after some inactivity can feel slow due to Render cold starts (especially on free tiers). This repo now includes a lightweight warmup call to `/api/health` from the client to reduce the “first request” delay.
+
+For best results:
+*   Keep the backend awake (paid instance or an external uptime ping).
+*   Set `MONGOOSE_AUTO_INDEX=false` in production to reduce startup time (set it to `true` temporarily only when you intentionally want Mongoose to build indexes).
+
 ## 🤝 Contributing
 
 Contributions, issues, and feature requests are welcome!

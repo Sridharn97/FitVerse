@@ -30,6 +30,11 @@ const register = async (req, res) => {
         name: user.name,
         email: user.email,
         isAnonymous: user.isAnonymous,
+        age: user.age,
+        height: user.height,
+        weight: user.weight,
+        goal: user.goal,
+        avatarUrl: user.avatarUrl,
       },
     },
   });
@@ -61,6 +66,11 @@ const login = async (req, res) => {
         name: user.name,
         email: user.email,
         isAnonymous: user.isAnonymous,
+        age: user.age,
+        height: user.height,
+        weight: user.weight,
+        goal: user.goal,
+        avatarUrl: user.avatarUrl,
       },
     },
   });

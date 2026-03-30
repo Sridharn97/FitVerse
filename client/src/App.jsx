@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { useEffect } from "react";
 import { FitnessProvider } from "@/contexts/FitnessContext";
+import { warmupApi } from "@/lib/api";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -30,6 +31,17 @@ const App = () => {
     } else {
       root.classList.add(theme);
     }
+  }, []);
+
+  useEffect(() => {
+    const runWarmup = () => warmupApi({ timeoutMs: 8000 });
+    if (typeof window === "undefined")
+      return;
+    if ("requestIdleCallback" in window) {
+      window.requestIdleCallback(runWarmup, { timeout: 2000 });
+      return;
+    }
+    window.setTimeout(runWarmup, 0);
   }, []);
 
   return (

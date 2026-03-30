@@ -8,17 +8,37 @@ function buildHeaders(customHeaders = {}) {
 }
 
 export async function apiRequest(path, options = {}) {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...options,
-    credentials: 'include',
-    headers: buildHeaders(options.headers),
-  });
+  const { timeoutMs, ...fetchOptions } = options;
 
-  const data = await response.json().catch(() => ({}));
+  const controller =
+    !fetchOptions.signal && typeof timeoutMs === 'number' ? new AbortController() : null;
+  const timeoutId =
+    controller && timeoutMs > 0 ? window.setTimeout(() => controller.abort(), timeoutMs) : null;
 
-  if (!response.ok) {
-    throw new Error(data.message || 'API request failed');
+  try {
+    const response = await fetch(`${API_BASE_URL}${path}`, {
+      ...fetchOptions,
+      credentials: 'include',
+      headers: buildHeaders(fetchOptions.headers),
+      signal: fetchOptions.signal ?? controller?.signal,
+    });
+
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(data.message || 'API request failed');
+    }
+
+    return data;
+  } finally {
+    if (timeoutId) window.clearTimeout(timeoutId);
   }
+}
 
-  return data;
+export async function warmupApi({ timeoutMs = 8000 } = {}) {
+  try {
+    await apiRequest('/health', { method: 'GET', timeoutMs });
+  } catch (_error) {
+    // Best-effort: only used to wake sleeping backends (e.g., Render free tier).
+  }
 }

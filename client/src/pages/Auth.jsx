@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dumbbell, Mail, Lock, User, ArrowRight, Flame, Target, TrendingUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { warmupApi } from "@/lib/api";
 import authBg from "@/assets/auth-fitness.jpg";
 const Auth = () => {
     const { user, login, signup } = useAuth();
@@ -17,25 +18,46 @@ const Auth = () => {
     const [signupName, setSignupName] = useState("");
     const [signupEmail, setSignupEmail] = useState("");
     const [signupPassword, setSignupPassword] = useState("");
+    const [submitting, setSubmitting] = useState(false);
+
+    useEffect(() => {
+        warmupApi({ timeoutMs: 8000 });
+    }, []);
     if (user)
         return <Navigate to="/dashboard" replace/>;
     const handleLogin = async (e) => {
         e.preventDefault();
-      if (await login(loginEmail, loginPassword)) {
-            navigate("/dashboard");
+        if (submitting)
+            return;
+        setSubmitting(true);
+        try {
+            if (await login(loginEmail, loginPassword)) {
+                navigate("/dashboard");
+            }
+            else {
+                toast({ title: "Login failed", description: "Invalid email or password", variant: "destructive" });
+            }
         }
-        else {
-            toast({ title: "Login failed", description: "Invalid email or password", variant: "destructive" });
+        finally {
+            setSubmitting(false);
         }
     };
     const handleSignup = async (e) => {
         e.preventDefault();
-      if (await signup(signupName, signupEmail, signupPassword)) {
-        toast({ title: "Welcome to FitVerse!", description: "Account created successfully" });
-            navigate("/dashboard");
+        if (submitting)
+            return;
+        setSubmitting(true);
+        try {
+            if (await signup(signupName, signupEmail, signupPassword)) {
+                toast({ title: "Welcome to FitVerse!", description: "Account created successfully" });
+                navigate("/dashboard");
+            }
+            else {
+                toast({ title: "Signup failed", description: "Email already exists", variant: "destructive" });
+            }
         }
-        else {
-            toast({ title: "Signup failed", description: "Email already exists", variant: "destructive" });
+        finally {
+            setSubmitting(false);
         }
     };
     return (<div className="flex min-h-screen bg-background">
@@ -107,7 +129,7 @@ const Auth = () => {
                   <Label htmlFor="login-email" className="text-sm font-medium">Email address</Label>
                   <div className="relative">
                     <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
-                    <Input id="login-email" type="email" placeholder="you@example.com" className="pl-11 h-12 bg-card border-border/50 focus:border-primary" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} required/>
+                    <Input id="login-email" type="email" placeholder="you@example.com" className="pl-11 h-12 bg-card border-border/50 focus:border-primary" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} required disabled={submitting}/>
                   </div>
                 </div>
                 <div className="space-y-2">
@@ -117,8 +139,8 @@ const Auth = () => {
                     <Input id="login-password" type="password" placeholder="••••••••" className="pl-11 h-12 bg-card border-border/50 focus:border-primary" value={loginPassword} onChange={e => setLoginPassword(e.target.value)} required/>
                   </div>
                 </div>
-                <Button type="submit" className="w-full h-12 text-base font-semibold group">
-                  Sign In
+                <Button type="submit" className="w-full h-12 text-base font-semibold group" disabled={submitting}>
+                  {submitting ? "Signing In..." : "Sign In"}
                   <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1"/>
                 </Button>
               </form>
@@ -130,14 +152,14 @@ const Auth = () => {
                   <Label htmlFor="signup-name" className="text-sm font-medium">Full Name</Label>
                   <div className="relative">
                     <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
-                    <Input id="signup-name" placeholder="John Doe" className="pl-11 h-12 bg-card border-border/50 focus:border-primary" value={signupName} onChange={e => setSignupName(e.target.value)} required/>
+                    <Input id="signup-name" placeholder="John Doe" className="pl-11 h-12 bg-card border-border/50 focus:border-primary" value={signupName} onChange={e => setSignupName(e.target.value)} required disabled={submitting}/>
                   </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="signup-email" className="text-sm font-medium">Email address</Label>
                   <div className="relative">
                     <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
-                    <Input id="signup-email" type="email" placeholder="you@example.com" className="pl-11 h-12 bg-card border-border/50 focus:border-primary" value={signupEmail} onChange={e => setSignupEmail(e.target.value)} required/>
+                    <Input id="signup-email" type="email" placeholder="you@example.com" className="pl-11 h-12 bg-card border-border/50 focus:border-primary" value={signupEmail} onChange={e => setSignupEmail(e.target.value)} required disabled={submitting}/>
                   </div>
                 </div>
                 <div className="space-y-2">
@@ -147,8 +169,8 @@ const Auth = () => {
                     <Input id="signup-password" type="password" placeholder="••••••••" className="pl-11 h-12 bg-card border-border/50 focus:border-primary" value={signupPassword} onChange={e => setSignupPassword(e.target.value)} required/>
                   </div>
                 </div>
-                <Button type="submit" className="w-full h-12 text-base font-semibold group">
-                  Create Account
+                <Button type="submit" className="w-full h-12 text-base font-semibold group" disabled={submitting}>
+                  {submitting ? "Creating..." : "Create Account"}
                   <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1"/>
                 </Button>
               </form>

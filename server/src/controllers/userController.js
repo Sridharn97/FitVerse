@@ -11,7 +11,7 @@ const updateProfile = async (req, res) => {
   });
 
   const user = await User.findByIdAndUpdate(req.user._id, updates, {
-    returnDocument: 'after',
+    new: true,
     runValidators: true,
   }).select('-password');
 

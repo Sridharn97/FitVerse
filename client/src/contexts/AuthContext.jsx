@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { apiRequest } from "@/lib/api";
 const AuthContext = createContext({
     user: null,
@@ -13,6 +13,7 @@ export const useAuth = () => useContext(AuthContext);
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [authLoading, setAuthLoading] = useState(true);
+    const authSeq = useRef(0);
 
     useEffect(() => {
         localStorage.removeItem("fitforge_user");
@@ -24,8 +25,11 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem("fitforge_posts");
 
         const bootstrap = async () => {
+            const seq = ++authSeq.current;
             try {
-                const res = await apiRequest("/auth/me");
+                const res = await apiRequest("/auth/me", { timeoutMs: 10000 });
+                if (authSeq.current !== seq)
+                    return;
                 setUser({
                     id: res.data._id,
                     name: res.data.name,
@@ -39,9 +43,13 @@ export const AuthProvider = ({ children }) => {
                 });
             }
             catch (_error) {
+                if (authSeq.current !== seq)
+                    return;
                 setUser(null);
             }
             finally {
+                if (authSeq.current !== seq)
+                    return;
                 setAuthLoading(false);
             }
         };
@@ -50,6 +58,7 @@ export const AuthProvider = ({ children }) => {
     }, []);
 
     const login = useCallback(async (email, password) => {
+        const seq = ++authSeq.current;
         try {
             const res = await apiRequest("/auth/login", {
                 method: "POST",
@@ -60,10 +69,18 @@ export const AuthProvider = ({ children }) => {
                 id: res.data.user.id,
                 name: res.data.user.name,
                 email: res.data.user.email,
+                age: res.data.user.age,
+                height: res.data.user.height,
+                weight: res.data.user.weight,
+                goal: res.data.user.goal,
+                avatarUrl: res.data.user.avatarUrl,
                 isAnonymous: res.data.user.isAnonymous ?? false,
             };
 
+            if (authSeq.current !== seq)
+                return false;
             setUser(nextUser);
+            setAuthLoading(false);
             return true;
         }
         catch (_error) {
@@ -72,6 +89,7 @@ export const AuthProvider = ({ children }) => {
     }, []);
 
     const signup = useCallback(async (name, email, password) => {
+        const seq = ++authSeq.current;
         try {
             const res = await apiRequest("/auth/register", {
                 method: "POST",
@@ -82,10 +100,18 @@ export const AuthProvider = ({ children }) => {
                 id: res.data.user.id,
                 name: res.data.user.name,
                 email: res.data.user.email,
+                age: res.data.user.age,
+                height: res.data.user.height,
+                weight: res.data.user.weight,
+                goal: res.data.user.goal,
+                avatarUrl: res.data.user.avatarUrl,
                 isAnonymous: res.data.user.isAnonymous ?? false,
             };
 
+            if (authSeq.current !== seq)
+                return false;
             setUser(nextUser);
+            setAuthLoading(false);
             return true;
         }
         catch (_error) {
@@ -94,6 +120,7 @@ export const AuthProvider = ({ children }) => {
     }, []);
 
     const logout = useCallback(async () => {
+        ++authSeq.current;
         try {
             await apiRequest("/auth/logout", { method: "POST" });
         }
