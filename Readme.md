@@ -121,6 +121,7 @@ If you deploy the frontend to Vercel and proxy `/api/*` to a backend hosted on R
 For best results:
 *   Keep the backend awake (paid instance or an external uptime ping).
 *   Set `MONGOOSE_AUTO_INDEX=false` in production to reduce startup time (set it to `true` temporarily only when you intentionally want Mongoose to build indexes).
+*   Because the frontend uses React Router `BrowserRouter`, configure a SPA fallback rewrite so deep links like `/auth` and `/dashboard` serve `index.html` (see `client/vercel.json` or the root `vercel.json`, depending on your Vercel Root Directory).
 
 ## 🤝 Contributing
 
