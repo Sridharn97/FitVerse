@@ -1,10 +1,8 @@
 import { useState, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFitness } from "@/contexts/FitnessContext";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import {
   BarChart, Bar,
   LineChart, Line,
@@ -115,7 +113,6 @@ const Dashboard = () => {
 
   const chartEnd = dateFilter === "this-month" ? now : rangeEnd;
 
-  /* Chart 1 & 2 – last 7 days data */
   const last7Days = useMemo(() =>
     Array.from({ length: 7 }, (_, i) => {
       const date = format(subDays(chartEnd, 6 - i), "yyyy-MM-dd");
@@ -127,7 +124,7 @@ const Dashboard = () => {
     [filteredWorkouts, filteredMeals, chartEnd]
   );
 
-  /* Chart 3 – Weight progress (up to last 10 entries in range) */
+ 
   const weightData = useMemo(() => {
     const sorted = [...filteredProgress].sort((a, b) => new Date(a.date) - new Date(b.date));
     return sorted.slice(-10).map((p) => ({
@@ -137,7 +134,7 @@ const Dashboard = () => {
     }));
   }, [filteredProgress]);
 
-  /* Chart 4 – Macronutrient breakdown */
+ 
   const macroData = useMemo(() => {
     const totals = filteredMeals.reduce(
       (acc, m) => ({
@@ -211,47 +208,6 @@ const Dashboard = () => {
           <StatCard key={s.label} {...s} />
         ))}
       </div>
-
-      {/* ── Goal Progress ── */}
-      {goal && (() => {
-        const isToday = dateFilter === "today";
-        const activeCals = isToday ? todayCalories : (rangeCalories / daysCount);
-        const activeTarget = goal.targetCalories;
-        const caloriePercent = Math.min((activeCals / activeTarget) * 100, 100);
-        const isCompleted = activeCals >= activeTarget;
-        const isOverTarget = activeCals > activeTarget;
-        const CheckCircle = ({ className }) => (
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
-          </svg>
-        );
-
-        return (
-          <Card className={`relative overflow-hidden transition-all duration-300 ${isCompleted ? 'border-primary/30 bg-primary/5' : ''}`}>
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between flex-wrap gap-2">
-                <div>
-                  <CardTitle className="text-base flex items-center gap-2">
-                    {isToday ? "Today's Goal" : `${formatFilterLabel(dateFilter)} (Daily Avg)`} {isCompleted && <CheckCircle className="h-4 w-4 text-primary" />}
-                  </CardTitle>
-                  <CardDescription className="mt-0.5 capitalize">{goal.type.replace("_", " ")} • {goal.trackingMode || 'Static'}</CardDescription>
-                </div>
-                <Badge variant={isOverTarget ? "destructive" : isCompleted ? "default" : "secondary"} className={isCompleted && !isOverTarget ? "bg-primary text-primary-foreground" : ""}>
-                  {isOverTarget ? "Over Target" : isCompleted ? "Goal Met" : `${Math.round(activeTarget - activeCals)} kcal remaining`}
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>{Math.round(activeCals).toLocaleString()} kcal daily avg</span>
-                <span>{activeTarget.toLocaleString()} kcal target</span>
-              </div>
-              <Progress value={caloriePercent} className={`h-2.5 ${isOverTarget ? '[&>div]:bg-destructive' : ''}`} />
-            </CardContent>
-          </Card>
-        );
-      })()}
-
       {/* ── Charts Row 1: Bar + Area ── */}
       <div>
         <div className="grid gap-4 lg:grid-cols-2">
@@ -435,3 +391,4 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+

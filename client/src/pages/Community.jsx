@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Plus, Heart, MessageCircle, Trash2, Send, Search } from "lucide-react";
-import { endOfMonth, formatDistanceToNow, isWithinInterval, startOfMonth, subMonths } from "date-fns";
+import { formatDistanceToNow } from "date-fns";
 const CATEGORIES = ["General", "Workout Tips", "Nutrition", "Motivation", "Progress", "Questions"];
 
 const Community = () => {
@@ -23,7 +23,6 @@ const Community = () => {
   const [category, setCategory] = useState("General");
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
-  const [dateFilter, setDateFilter] = useState("this-month");
   const [commentTexts, setCommentTexts] = useState({});
   const [expandedComments, setExpandedComments] = useState({});
   const handleCreate = () => {
@@ -40,12 +39,7 @@ const Community = () => {
     addComment(postId, { content: commentTexts[postId] });
     setCommentTexts(prev => ({ ...prev, [postId]: "" }));
   };
-  const now = new Date();
-  const filterMonth = dateFilter === "this-month" ? now : subMonths(now, 1);
-  const rangeStart = startOfMonth(filterMonth);
-  const rangeEnd = endOfMonth(filterMonth);
   const filtered = posts
-    .filter(p => isWithinInterval(new Date(p.date), { start: rangeStart, end: rangeEnd }))
     .filter(p => filterCategory === "all" || p.category === filterCategory)
     .filter(p => !searchQuery || p.title.toLowerCase().includes(searchQuery.toLowerCase()) || p.content.toLowerCase().includes(searchQuery.toLowerCase()))
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -95,13 +89,6 @@ const Community = () => {
         <SelectContent>
           <SelectItem value="all">All Categories</SelectItem>
           {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-        </SelectContent>
-      </Select>
-      <Select value={dateFilter} onValueChange={setDateFilter}>
-        <SelectTrigger className="w-full sm:w-[150px]"><SelectValue placeholder="Date filter" /></SelectTrigger>
-        <SelectContent>
-          <SelectItem value="this-month">This month</SelectItem>
-          <SelectItem value="last-month">Last month</SelectItem>
         </SelectContent>
       </Select>
     </div>
