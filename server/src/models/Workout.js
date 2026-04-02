@@ -3,9 +3,19 @@ const mongoose = require('mongoose');
 const exerciseSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
+    category: { type: String, default: 'General', trim: true },
+    videoUrl: { type: String, default: '' },
+    formCue: { type: String, default: '' },
+    setType: {
+      type: String,
+      enum: ['standard', 'superset', 'drop-set', 'circuit'],
+      default: 'standard',
+    },
+    groupId: { type: String, default: '' },
     sets: { type: Number, default: 0 },
     reps: { type: Number, default: 0 },
     weight: { type: Number, default: 0 },
+    restSeconds: { type: Number, default: 60 },
     durationMinutes: { type: Number, default: 0 },
     notes: { type: String, default: '' },
   },
@@ -24,6 +34,7 @@ const workoutSchema = new mongoose.Schema(
     category: { type: String, default: 'General' },
     date: { type: Date, default: Date.now },
     completed: { type: Boolean, default: false },
+    restSeconds: { type: Number, default: 60 },
     exercises: [exerciseSchema],
     notes: { type: String, default: '' },
   },
