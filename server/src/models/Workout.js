@@ -5,6 +5,8 @@ const exerciseSchema = new mongoose.Schema(
     name: { type: String, required: true, trim: true },
     category: { type: String, default: 'General', trim: true },
     videoUrl: { type: String, default: '' },
+    steps: { type: [String], default: [] },
+    requirements: { type: [String], default: [] },
     formCue: { type: String, default: '' },
     setType: {
       type: String,

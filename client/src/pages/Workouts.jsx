@@ -10,125 +10,19 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Plus, Trash2, Dumbbell, TimerReset, Play, Pause } from "lucide-react";
+import { Plus, Trash2, Dumbbell, TimerReset, Play, Pause, Info, ChevronRight } from "lucide-react";
 import { format, isWithinInterval } from "date-fns";
 import { DateFilter } from "@/components/shared/DateFilter";
 import { getDateRange } from "@/lib/date-utils";
+import { 
+  EXERCISE_LIBRARY, 
+  ALL_DAYS, 
+  BUILDER_MODES, 
+  EXERCISE_CATEGORIES 
+} from "@/data/workoutData";
+import { formatSeconds } from "@/lib/workout-utils";
 
-const EXERCISE_LIBRARY = [
-  // Chest
-  { name: "Bench Press", category: "Chest", formCue: "Drive feet through floor, keep shoulder blades packed.", video: "https://www.youtube.com/embed/QsYre__-asm" },
-  { name: "Incline Bench Press", category: "Chest", formCue: "Lower to upper chest, maintain stable position.", video: "https://www.youtube.com/embed/D84qPJ2MailbI" },
-  { name: "Dumbbell Chest Press", category: "Chest", formCue: "Full range, controlled tempo.", video: "https://www.youtube.com/embed/GI5LjKHSKEU" },
-  { name: "Cable Chest Fly", category: "Chest", formCue: "Squeeze at top, slight elbow bend.", video: "https://www.youtube.com/embed/nO8kjQj7bU8" },
-  { name: "Push-ups", category: "Chest", formCue: "Keep body straight, lower to 90 degrees.", video: "https://www.youtube.com/embed/IODxDxX7oi4" },
-  
-  // Back
-  { name: "Deadlift", category: "Back", formCue: "Hinge from hips, keep bar close to shins.", video: "https://www.youtube.com/embed/r4MzxtBKyNE" },
-  { name: "Lat Pulldown", category: "Back", formCue: "Pull elbows toward hips, avoid leaning back.", video: "https://www.youtube.com/embed/9-u6r6sPbqw" },
-  { name: "Barbell Rows", category: "Back", formCue: "Retract shoulder blades, hinge from hips.", video: "https://www.youtube.com/embed/p2OPXmnOQDU" },
-  { name: "Assisted Pull-ups", category: "Back", formCue: "Full range of motion, chest to bar.", video: "https://www.youtube.com/embed/aFdcz-gVywE" },
-  { name: "Face Pulls", category: "Back", formCue: "External rotation, squeeze rear delts.", video: "https://www.youtube.com/embed/HSoWlKmW6OI" },
-  
-  // Shoulders
-  { name: "Shoulder Press", category: "Shoulders", formCue: "Squeeze glutes, keep ribs stacked over hips.", video: "https://www.youtube.com/embed/B-Zqzu_tfNs" },
-  { name: "Lateral Raises", category: "Shoulders", formCue: "Slight bend in elbow, raise to shoulder height.", video: "https://www.youtube.com/embed/q8F5w0I9YA0" },
-  { name: "Machine Shoulder Press", category: "Shoulders", formCue: "Full range, controlled descent.", video: "https://www.youtube.com/embed/eQfKLyRgiqY" },
-  { name: "Plate Raises", category: "Shoulders", formCue: "Arms extended, squeeze at top.", video: "https://www.youtube.com/embed/EF-jQq8fV-Q" },
-  
-  // Legs
-  { name: "Squats", category: "Legs", formCue: "Brace core, knees track over mid-foot.", video: "https://www.youtube.com/embed/aclHkVaku9U" },
-  { name: "Leg Press", category: "Legs", formCue: "Full range, knees aligned with toes.", video: "https://www.youtube.com/embed/IZxyjW7MIAI" },
-  { name: "Lunges", category: "Legs", formCue: "Stay tall, keep front knee stable.", video: "https://www.youtube.com/embed/H7I_9trsQeY" },
-  { name: "Leg Curl", category: "Legs", formCue: "Controlled motion, full range of motion.", video: "https://www.youtube.com/embed/ZLa5-UZ-9pA" },
-  { name: "Leg Extensions", category: "Legs", formCue: "Full lockout, squeeze quadriceps.", video: "https://www.youtube.com/embed/YyvSfVjQeL4" },
-  { name: "Bulgarian Split Squats", category: "Legs", formCue: "Balance and stability, 90-degree angle.", video: "https://www.youtube.com/embed/mcV0k5p7YaE" },
-  
-  // Arms
-  { name: "Barbell Curls", category: "Arms", formCue: "Keep elbows fixed, full range.", video: "https://www.youtube.com/embed/B-Zqzu_tfNs" },
-  { name: "Tricep Dips", category: "Arms", formCue: "Lower chest height, controlled descent.", video: "https://www.youtube.com/embed/M2u3sPRHWQs" },
-  { name: "Overhead Tricep Extension", category: "Arms", formCue: "Full range, squeeze at top.", video: "https://www.youtube.com/embed/7qztvpEYtMM" },
-  { name: "Hammer Curls", category: "Arms", formCue: "Neutral grip, slow and controlled.", video: "https://www.youtube.com/embed/2VhZcVsKvZM" },
-  
-  // Core
-  { name: "Plank", category: "Core", formCue: "Tuck pelvis, keep neck neutral.", video: "https://www.youtube.com/embed/pSHjTRCQxIw" },
-  { name: "Crunches", category: "Core", formCue: "Controlled motion, exhale at top.", video: "https://www.youtube.com/embed/Xd5N9IK-XQ8" },
-  { name: "Cable Woodchops", category: "Core", formCue: "Rotate from core, full range.", video: "https://www.youtube.com/embed/W9_VpCpgN4A" },
-  { name: "Ab Wheel Rollout", category: "Core", formCue: "Controlled descent and return.", video: "https://www.youtube.com/embed/rpJzPU9YlJA" },
-  
-  // Cardio
-  { name: "Cycling", category: "Cardio", formCue: "Maintain steady cadence, relaxed shoulders.", video: "https://www.youtube.com/embed/n0_2VVoXlFY" },
-  { name: "Treadmill Running", category: "Cardio", formCue: "Natural stride, relaxed posture.", video: "https://www.youtube.com/embed/5kfjlbsUuXQ" },
-  { name: "Rowing Machine", category: "Cardio", formCue: "Drive legs first, then pull.", video: "https://www.youtube.com/embed/oP6orisSQF8" },
-  { name: "Elliptical", category: "Cardio", formCue: "Consistent pace, upright posture.", video: "https://www.youtube.com/embed/MJLdBtQPgTQ" },
-];
-const ALL_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-
-const BUILDER_MODES = [
-  { value: "standard", label: "Standard" },
-  { value: "superset", label: "Superset" },
-  { value: "drop-set", label: "Drop-set" },
-  { value: "circuit", label: "Circuit" },
-];
-
-const EXERCISE_CATEGORIES = ["Chest", "Back", "Shoulders", "Legs", "Arms", "Core", "Cardio"];
-
-const formatSeconds = (seconds) => {
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  return `${mins}:${String(secs).padStart(2, "0")}`;
-};
-
-const getYouTubeIdFromUrl = (url = "") => {
-  if (!url) {
-    return "";
-  }
-
-  try {
-    const parsed = new URL(url);
-
-    if (parsed.hostname.includes("youtu.be")) {
-      return parsed.pathname.replace("/", "");
-    }
-
-    const fromQuery = parsed.searchParams.get("v");
-    if (fromQuery) {
-      return fromQuery;
-    }
-
-    if (parsed.pathname.includes("/embed/")) {
-      return parsed.pathname.split("/embed/")[1]?.split("/")[0] || "";
-    }
-  } catch {
-    return "";
-  }
-
-  return "";
-};
-
-const isValidYouTubeId = (value = "") => /^[A-Za-z0-9_-]{11}$/.test(value);
-
-const getExerciseDemoQuery = (exercise) => `${exercise.name} exercise proper form`;
-
-const getExerciseDemoEmbedUrl = (exercise) => {
-  const videoId = getYouTubeIdFromUrl(exercise.video);
-  if (isValidYouTubeId(videoId)) {
-    return `https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1`;
-  }
-
-  const query = encodeURIComponent(getExerciseDemoQuery(exercise));
-  return `https://www.youtube.com/embed?listType=search&list=${query}&rel=0&modestbranding=1`;
-};
-
-const getExerciseDemoWatchUrl = (exercise) => {
-  const videoId = getYouTubeIdFromUrl(exercise.video);
-  if (isValidYouTubeId(videoId)) {
-    return `https://www.youtube.com/watch?v=${videoId}`;
-  }
-
-  const query = encodeURIComponent(getExerciseDemoQuery(exercise));
-  return `https://www.youtube.com/results?search_query=${query}`;
-};
+// Text-based exercise instructions replace video demos.
 
 const Workouts = () => {
   const { workouts, addWorkout, updateWorkout, deleteWorkout, toggleWorkoutComplete } = useFitness();
@@ -148,8 +42,7 @@ const Workouts = () => {
   const [detailsDrawerOpen, setDetailsDrawerOpen] = useState(false);
   const [detailsWorkoutId, setDetailsWorkoutId] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState("all");
-  const [activeDemoExercise, setActiveDemoExercise] = useState(null);
-  const demoPanelRef = useRef(null);
+  const [activeExerciseInstructions, setActiveExerciseInstructions] = useState(null);
 
   const addExercise = (exercise) => {
     if (builderMode === "superset" || builderMode === "circuit") {
@@ -244,13 +137,7 @@ const Workouts = () => {
     });
   }, [workouts]);
 
-  useEffect(() => {
-    if (!activeDemoExercise || !demoPanelRef.current) {
-      return;
-    }
-
-    demoPanelRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
-  }, [activeDemoExercise]);
+// Exercise instructions are displayed in a dedicated section or modal.
 
   const startTimer = (workout) => {
     setTimers((prev) => {
@@ -300,7 +187,7 @@ const Workouts = () => {
     setExercises([]);
     setStagedExercise(null);
     setSelectedCategory("all");
-    setActiveDemoExercise(null);
+    setActiveExerciseInstructions(null);
     setOpen(false);
   };
 
@@ -469,54 +356,84 @@ const Workouts = () => {
                             size="sm"
                             variant="link"
                             className="mt-2 h-auto justify-start p-0 text-xs font-medium text-primary"
-                            onClick={() => setActiveDemoExercise(exercise)}
+                            onClick={() => setActiveExerciseInstructions(exercise)}
                           >
-                            Watch Demo
+                            <Info className="mr-1 h-3 w-3" /> View Instructions
                           </Button>
                         </div>
                       </div>
                     ))}
                   </div>
 
-                  {activeDemoExercise && (
-                    <div ref={demoPanelRef} className="rounded-lg border bg-card p-3 shadow-sm">
-                      <div className="mb-2 flex items-center justify-between gap-2">
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold">{activeDemoExercise.name} Demo</p>
-                          <p className="text-xs text-muted-foreground">{activeDemoExercise.category}</p>
+                  {/* Instructions Pop-up Dialog */}
+                  <Dialog open={!!activeExerciseInstructions} onOpenChange={(open) => !open && setActiveExerciseInstructions(null)}>
+                    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl border-primary/20 ring-1 ring-primary/5">
+                      {activeExerciseInstructions && (
+                        <div className="space-y-6 pt-2">
+                          <div className="space-y-2">
+                            <DialogHeader className="text-left px-0 pb-2 border-b border-primary/10">
+                              <DialogTitle className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-3">
+                                <span className="bg-primary/10 p-2 rounded-xl">
+                                  <Dumbbell className="h-6 w-6 text-primary" />
+                                </span>
+                                {activeExerciseInstructions.name}
+                              </DialogTitle>
+                              <Badge variant="secondary" className="w-fit mt-1 bg-primary/5 text-primary border-primary/20 hover:bg-primary/10">
+                                {activeExerciseInstructions.category}
+                              </Badge>
+                            </DialogHeader>
+                          </div>
+
+                          <div className="grid gap-8 md:grid-cols-2">
+                            <div className="space-y-5">
+                              <h4 className="text-sm font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                                <ChevronRight className="h-4 w-4 text-primary" />
+                                Steps to Perform
+                              </h4>
+                              <ol className="space-y-4 pr-2">
+                                {activeExerciseInstructions.steps.map((step, i) => (
+                                  <li key={i} className="flex gap-4 text-sm leading-relaxed text-foreground/90 group">
+                                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+                                      {i + 1}
+                                    </span>
+                                    <p className="pt-0.5">{step}</p>
+                                  </li>
+                                ))}
+                              </ol>
+                            </div>
+
+                            <div className="space-y-6">
+                              <div className="space-y-4">
+                                <h4 className="text-sm font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                                  <Plus className="h-4 w-4 text-primary" />
+                                  Requirements
+                                </h4>
+                                <div className="flex flex-wrap gap-2">
+                                  {activeExerciseInstructions.requirements.map((req) => (
+                                    <Badge key={req} variant="outline" className="bg-muted/50 border-primary/10 font-medium px-3 py-1 text-xs">
+                                      {req}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              </div>
+
+                              <div className="rounded-xl bg-gradient-to-br from-primary/5 to-transparent p-4 border border-primary/10 shadow-sm relative overflow-hidden group">
+                                <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:scale-110 transition-transform">
+                                  <Info className="h-12 w-12 text-primary" />
+                                </div>
+                                <h4 className="text-[10px] font-black uppercase tracking-widest text-primary/70 mb-2">Coach's Pro Tip</h4>
+                                <p className="text-sm italic text-foreground/80 leading-relaxed font-medium">"{activeExerciseInstructions.formCue}"</p>
+                              </div>
+
+                              <Button onClick={() => setActiveExerciseInstructions(null)} className="w-full mt-2 sm:hidden">
+                                Close Instructions
+                              </Button>
+                            </div>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Button asChild type="button" size="sm" variant="outline" className="h-7 px-2 text-xs">
-                            <a href={getExerciseDemoWatchUrl(activeDemoExercise)} target="_blank" rel="noreferrer">
-                              Open on YouTube
-                            </a>
-                          </Button>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="ghost"
-                            className="h-7 px-2 text-xs"
-                            onClick={() => setActiveDemoExercise(null)}
-                          >
-                            Close
-                          </Button>
-                        </div>
-                      </div>
-                      <div className="overflow-hidden rounded-md border bg-black">
-                        <div className="relative aspect-video w-full">
-                          <iframe
-                            src={getExerciseDemoEmbedUrl(activeDemoExercise)}
-                            title={`${activeDemoExercise.name} demo`}
-                            className="h-full w-full"
-                            loading="lazy"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                            allowFullScreen
-                            style={{ border: "none" }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                      )}
+                    </DialogContent>
+                  </Dialog>
                 </div>
 
                 {exercises.length > 0 && (
@@ -720,6 +637,16 @@ const Workouts = () => {
                           {exercise.sets} x {exercise.reps} | {exercise.weight || 0} kg
                         </p>
                         {exercise.formCue && <p className="mt-1 text-xs text-muted-foreground">Cue: {exercise.formCue}</p>}
+                        {exercise.steps && exercise.steps.length > 0 && (
+                          <Button
+                            size="sm"
+                            variant="link"
+                            className="h-auto p-0 text-xs text-primary mt-2"
+                            onClick={() => setActiveExerciseInstructions(exercise)}
+                          >
+                            <Info className="mr-1 h-3 w-3" /> View Instructions
+                          </Button>
+                        )}
                       </div>
                     ))}
                   </div>

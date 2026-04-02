@@ -26,6 +26,8 @@ const toUiWorkout = (workout) => ({
         setType: exercise.setType || "standard",
         groupId: exercise.groupId || "",
         videoUrl: exercise.videoUrl || "",
+        steps: exercise.steps || [],
+        requirements: exercise.requirements || [],
         formCue: exercise.formCue || "",
     })),
 });
@@ -49,6 +51,8 @@ const toApiWorkout = (workout) => ({
         setType: exercise.setType || "standard",
         groupId: exercise.groupId || "",
         videoUrl: exercise.videoUrl || "",
+        steps: exercise.steps || [],
+        requirements: exercise.requirements || [],
         formCue: exercise.formCue || "",
     })),
 });
