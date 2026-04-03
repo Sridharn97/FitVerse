@@ -1,30 +1,13 @@
 import { useState, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFitness } from "@/contexts/FitnessContext";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import {
-  BarChart, Bar,
-  LineChart, Line,
-  AreaChart, Area,
-  PieChart, Pie, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
-} from "recharts";
-import { format, isAfter, isWithinInterval, subDays, differenceInDays, startOfDay, isBefore } from "date-fns";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { format, isAfter, isWithinInterval, subDays, differenceInDays, differenceInCalendarDays, startOfDay, isBefore } from "date-fns";
+import { CheckCircle2, Circle, Clock, Dumbbell, Flame, TrendingUp, Zap } from "lucide-react";
 import { DateFilter } from "@/components/shared/DateFilter";
 import { getDateRange, formatFilterLabel } from "@/lib/date-utils";
-
-
-const tooltipStyle = {
-  backgroundColor: "hsl(var(--card))",
-  border: "1px solid hsl(var(--border))",
-  borderRadius: "10px",
-  color: "hsl(var(--foreground))",
-  fontSize: "13px",
-  padding: "10px 14px",
-  boxShadow: "0 4px 20px rgba(0,0,0,0.12)",
-};
-
+import DashboardCharts from "@/components/dashboard/charts/DashboardCharts";
 
 function StatCard({ label, value, sub, accent }) {
   return (
@@ -51,35 +34,11 @@ function SectionLabel({ title, description }) {
   );
 }
 
-/* ─────────────────────────────────────────────
-   Macro Pie custom label
-───────────────────────────────────────────── */
-const MACRO_COLORS = [
-  "hsl(var(--chart-1))",
-  "hsl(var(--chart-2))",
-  "hsl(var(--chart-3))",
-];
 
-const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
-  if (percent < 0.05) return null;
-  const RADIAN = Math.PI / 180;
-  const r = innerRadius + (outerRadius - innerRadius) * 0.5;
-  const x = cx + r * Math.cos(-midAngle * RADIAN);
-  const y = cy + r * Math.sin(-midAngle * RADIAN);
-  return (
-    <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" fontSize={11} fontWeight={600}>
-      {`${(percent * 100).toFixed(0)}%`}
-    </text>
-  );
-};
-
-/* ─────────────────────────────────────────────
-   Dashboard
-───────────────────────────────────────────── */
 const Dashboard = () => {
   const [dateFilter, setDateFilter] = useState("this-month");
   const { user } = useAuth();
-  const { workouts, progress, meals, goal } = useFitness();
+  const { workouts, progress, meals } = useFitness();
 
   const now = useMemo(() => new Date(), []);
   const range = useMemo(() => getDateRange(dateFilter, now), [dateFilter, now]);
@@ -124,7 +83,7 @@ const Dashboard = () => {
     [filteredWorkouts, filteredMeals, chartEnd]
   );
 
- 
+
   const weightData = useMemo(() => {
     const sorted = [...filteredProgress].sort((a, b) => new Date(a.date) - new Date(b.date));
     return sorted.slice(-10).map((p) => ({
@@ -134,7 +93,7 @@ const Dashboard = () => {
     }));
   }, [filteredProgress]);
 
- 
+
   const macroData = useMemo(() => {
     const totals = filteredMeals.reduce(
       (acc, m) => ({
@@ -160,6 +119,45 @@ const Dashboard = () => {
     return w.completed && isAfter(d, subDays(chartEnd, 7));
   }).length;
 
+  // Category breakdown — how many exercises per muscle group
+  const categoryData = useMemo(() => {
+    const counts = {};
+    filteredWorkouts.forEach((w) => {
+      (w.exercises || []).forEach((ex) => {
+        const cat = ex.category || "General";
+        counts[cat] = (counts[cat] || 0) + 1;
+      });
+    });
+    return Object.entries(counts)
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count);
+  }, [filteredWorkouts]);
+
+  // Avg daily protein
+  const avgProtein = useMemo(() => {
+    const total = filteredMeals.reduce((s, m) => s + (m.protein || 0), 0);
+    return daysCount > 0 ? Math.round(total / daysCount) : 0;
+  }, [filteredMeals, daysCount]);
+
+  // Workout streak (consecutive days with completed workout ending today)
+  const streak = useMemo(() => {
+    const completedDates = new Set(
+      workouts.filter((w) => w.completed).map((w) => w.date)
+    );
+    let count = 0;
+    let check = new Date();
+    while (true) {
+      const key = format(check, "yyyy-MM-dd");
+      if (completedDates.has(key)) {
+        count++;
+        check = subDays(check, 1);
+      } else {
+        break;
+      }
+    }
+    return count;
+  }, [workouts]);
+
   const stats = [
     {
       label: "Workouts Done",
@@ -170,7 +168,7 @@ const Dashboard = () => {
     {
       label: dateFilter === "today" ? "Today's Calories" : `${formatFilterLabel(dateFilter)} (Daily Avg)`,
       value: (dateFilter === "today" ? todayCalories : Math.round(rangeCalories / daysCount)).toLocaleString(),
-      sub: goal ? `Target: ${goal.targetCalories.toLocaleString()} kcal/day` : "No goal set",
+      sub: "Daily calorie intake",
       accent: "hsl(var(--destructive))",
     },
     {
@@ -180,12 +178,54 @@ const Dashboard = () => {
       accent: "hsl(var(--chart-3))",
     },
     {
-      label: "Active This Week",
-      value: totalWorkoutsThisWeek,
-      sub: "Workouts in last 7 days",
-      accent: "hsl(var(--chart-4))",
+      label: "Workout Streak",
+      value: streak > 0 ? `${streak}d` : "—",
+      sub: streak > 0 ? "Consecutive days active" : "Complete a workout to start",
+      accent: "hsl(var(--chart-1))",
     },
   ];
+  // Muscle group last-trained freshness
+  const MUSCLE_GROUPS = [
+    { name: "Chest",     icon: "💪" },
+    { name: "Back",      icon: "🔙" },
+    { name: "Shoulders", icon: "🏋️" },
+    { name: "Legs",      icon: "🦵" },
+    { name: "Arms",      icon: "💪" },
+    { name: "Core",      icon: "🔥" },
+    { name: "Cardio",    icon: "🏃" },
+  ];
+
+  const muscleStatus = useMemo(() => {
+    const today = startOfDay(new Date());
+    const lastTrained = {};
+    workouts.forEach((w) => {
+      (w.exercises || []).forEach((ex) => {
+        const cat = ex.category || "General";
+        const d = startOfDay(new Date(w.date));
+        if (!lastTrained[cat] || d > lastTrained[cat]) {
+          lastTrained[cat] = d;
+        }
+      });
+    });
+    return MUSCLE_GROUPS.map(({ name, icon }) => {
+      const last = lastTrained[name];
+      const daysAgo = last ? differenceInCalendarDays(today, last) : null;
+      let status = "never";
+      if (daysAgo === 0) status = "today";
+      else if (daysAgo === 1) status = "yesterday";
+      else if (daysAgo !== null && daysAgo <= 3) status = "recent";
+      else if (daysAgo !== null && daysAgo <= 7) status = "moderate";
+      else if (daysAgo !== null) status = "stale";
+      return { name, icon, daysAgo, status };
+    });
+  }, [workouts]);
+
+  // Recent 5 workouts for the activity feed
+  const recentWorkouts = useMemo(() => {
+    return [...workouts]
+      .sort((a, b) => new Date(b.date) - new Date(a.date))
+      .slice(0, 5);
+  }, [workouts]);
 
   return (
     <div className="space-y-8 px-1 pb-8">
@@ -208,187 +248,90 @@ const Dashboard = () => {
           <StatCard key={s.label} {...s} />
         ))}
       </div>
-      {/* ── Charts Row 1: Bar + Area ── */}
-      <div>
-        <div className="grid gap-4 lg:grid-cols-2">
-          {/* Chart 1 – Weekly Workout Activity (Bar) */}
-          <Card className="overflow-hidden">
-            <CardHeader className="pb-2">
-              <SectionLabel
-                title="Weekly Workout Activity"
-                description="Completed sessions per day — last 7 days"
-              />
-            </CardHeader>
-            <CardContent className="pt-1">
-              <ResponsiveContainer width="100%" height={240}>
-                <BarChart data={last7Days} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-                  <XAxis dataKey="label" stroke="hsl(var(--muted-foreground))" fontSize={12} axisLine={false} tickLine={false} />
-                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} axisLine={false} tickLine={false} allowDecimals={false} />
-                  <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "hsl(var(--muted))", opacity: 0.3 }} />
-                  <Bar dataKey="completed" fill="hsl(var(--primary))" radius={[5, 5, 0, 0]} name="Workouts" maxBarSize={40} />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-
-          {/* Chart 2 – Calorie Intake Trend (Area) */}
-          <Card className="overflow-hidden">
-            <CardHeader className="pb-2">
-              <SectionLabel
-                title="Calorie Intake Trend"
-                description="Daily caloric consumption — last 7 days"
-              />
-            </CardHeader>
-            <CardContent className="pt-1">
-              <ResponsiveContainer width="100%" height={240}>
-                <AreaChart data={last7Days} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="calorieGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="hsl(var(--destructive))" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="hsl(var(--destructive))" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-                  <XAxis dataKey="label" stroke="hsl(var(--muted-foreground))" fontSize={12} axisLine={false} tickLine={false} />
-                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} axisLine={false} tickLine={false} />
-                  <Tooltip contentStyle={tooltipStyle} />
-                  <Area
-                    type="monotone"
-                    dataKey="calories"
-                    stroke="hsl(var(--destructive))"
-                    strokeWidth={2.5}
-                    fill="url(#calorieGrad)"
-                    dot={{ r: 4, fill: "hsl(var(--destructive))", strokeWidth: 0 }}
-                    activeDot={{ r: 6 }}
-                    name="Calories"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
-      {/* ── Charts Row 2: Line + Pie ── */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        {/* Chart 3 – Weight / BMI Progress (Line) */}
-        <Card className="overflow-hidden">
-          <CardHeader className="pb-2">
-            <SectionLabel
-              title="Weight & BMI Progress"
-              description="Body metrics tracked over time"
-            />
-          </CardHeader>
-          <CardContent className="pt-1">
-            {weightData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={240}>
-                <LineChart data={weightData} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-                  <XAxis dataKey="label" stroke="hsl(var(--muted-foreground))" fontSize={11} axisLine={false} tickLine={false} />
-                  <YAxis yAxisId="weight" stroke="hsl(var(--muted-foreground))" fontSize={11} axisLine={false} tickLine={false} domain={["auto", "auto"]} />
-                  <YAxis yAxisId="bmi" orientation="right" stroke="hsl(var(--chart-3))" fontSize={11} axisLine={false} tickLine={false} domain={["auto", "auto"]} />
-                  <Tooltip contentStyle={tooltipStyle} />
-                  <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: "12px", paddingTop: "8px" }} />
-                  <Line
-                    yAxisId="weight"
-                    type="monotone"
-                    dataKey="weight"
-                    stroke="hsl(var(--primary))"
-                    strokeWidth={2.5}
-                    dot={{ r: 4, fill: "hsl(var(--primary))", strokeWidth: 0 }}
-                    activeDot={{ r: 6 }}
-                    name="Weight (kg)"
-                  />
-                  <Line
-                    yAxisId="bmi"
-                    type="monotone"
-                    dataKey="bmi"
-                    stroke="hsl(var(--chart-3))"
-                    strokeWidth={2.5}
-                    strokeDasharray="5 4"
-                    dot={{ r: 4, fill: "hsl(var(--chart-3))", strokeWidth: 0 }}
-                    activeDot={{ r: 6 }}
-                    name="BMI"
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex flex-col items-center justify-center h-[240px] text-center gap-2">
-                <p className="text-muted-foreground text-sm">No progress entries yet</p>
-                <p className="text-xs text-muted-foreground">Log your weight to start tracking trends.</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Chart 4 – Macronutrient Breakdown (Pie) */}
-        <Card className="overflow-hidden">
-          <CardHeader className="pb-2">
-            <SectionLabel
-              title="Macronutrient Breakdown"
-              description="Protein · Carbohydrates · Fat split this period"
-            />
-          </CardHeader>
-          <CardContent className="pt-1">
-            {macroData.length > 0 ? (
-              <div className="flex items-center gap-4">
-                <ResponsiveContainer width="55%" height={240}>
-                  <PieChart>
-                    <Pie
-                      data={macroData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={55}
-                      outerRadius={95}
-                      paddingAngle={3}
-                      dataKey="value"
-                      labelLine={false}
-                      label={renderCustomLabel}
-                    >
-                      {macroData.map((_, index) => (
-                        <Cell key={index} fill={MACRO_COLORS[index % MACRO_COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip contentStyle={tooltipStyle} formatter={(v) => [`${v}g`, ""]} />
-                  </PieChart>
-                </ResponsiveContainer>
-
-                {/* Legend */}
-                <div className="flex flex-col gap-3 flex-1">
-                  {macroData.map((d, i) => (
-                    <div key={d.name} className="flex items-center gap-2">
-                      <span
-                        className="inline-block w-3 h-3 rounded-full shrink-0"
-                        style={{ backgroundColor: MACRO_COLORS[i % MACRO_COLORS.length] }}
-                      />
-                      <div className="flex flex-col">
-                        <span className="text-xs font-semibold text-foreground">{d.name}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {d.value}g &nbsp;·&nbsp; {totalMacros > 0 ? Math.round((d.value / totalMacros) * 100) : 0}%
-                        </span>
+      <DashboardCharts last7Days={last7Days} weightData={weightData} macroData={macroData} totalMacros={totalMacros} />
+      {/* ── Row 3: Recent Activity Feed (full width) ── */}
+      <Card className="overflow-hidden">
+        <CardHeader className="pb-3">
+          <SectionLabel
+            title="Recent Activity"
+            description="Your 5 latest workout sessions"
+          />
+        </CardHeader>
+        <CardContent className="pt-0">
+          {recentWorkouts.length > 0 ? (
+            <div className="grid gap-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+              {recentWorkouts.map((w) => {
+                const exerciseCount = (w.exercises || []).length;
+                const categories = [...new Set((w.exercises || []).map((e) => e.category).filter(Boolean))];
+                const daysAgo = differenceInCalendarDays(startOfDay(new Date()), startOfDay(new Date(w.date)));
+                const dateLabel = daysAgo === 0 ? "Today" : daysAgo === 1 ? "Yesterday" : `${daysAgo}d ago`;
+                return (
+                  <div
+                    key={w.id}
+                    className="group flex flex-col gap-2 rounded-xl border border-border/60 bg-muted/10 p-4 transition-colors hover:bg-muted/30 hover:border-primary/20"
+                  >
+                    {/* Top row: icon + date */}
+                    <div className="flex items-center justify-between">
+                      <div className={`flex h-8 w-8 items-center justify-center rounded-full ${
+                        w.completed ? "bg-primary/15 text-primary" : "bg-muted/60 text-muted-foreground"
+                      }`}>
+                        {w.completed ? <CheckCircle2 className="h-4 w-4" /> : <Circle className="h-4 w-4" />}
                       </div>
+                      <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                        <Clock className="h-3 w-3" />{dateLabel}
+                      </span>
                     </div>
-                  ))}
-                  {totalMacros > 0 && (
-                    <p className="text-[11px] text-muted-foreground mt-1 border-t border-border pt-2">
-                      Total: {totalMacros}g
-                    </p>
-                  )}
-                </div>
+
+                    {/* Workout name */}
+                    <p className="text-sm font-semibold text-foreground leading-snug line-clamp-1">{w.name}</p>
+
+                    {/* Day + exercise count */}
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <span>{w.day}</span>
+                      {exerciseCount > 0 && (
+                        <>
+                          <span className="text-border">·</span>
+                          <span className="flex items-center gap-0.5">
+                            <Dumbbell className="h-2.5 w-2.5" /> {exerciseCount} ex
+                          </span>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Category badges */}
+                    {categories.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-auto pt-1 border-t border-border/40">
+                        {categories.slice(0, 2).map((cat) => (
+                          <span
+                            key={cat}
+                            className="inline-block text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-primary/8 text-primary/80 border border-primary/10"
+                          >
+                            {cat}
+                          </span>
+                        ))}
+                        {categories.length > 2 && (
+                          <span className="text-[10px] text-muted-foreground">+{categories.length - 2}</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-[140px] text-center gap-3">
+              <div className="h-12 w-12 rounded-full bg-muted/40 flex items-center justify-center">
+                <Dumbbell className="h-6 w-6 text-muted-foreground" />
               </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center h-[240px] text-center gap-2">
-                <p className="text-muted-foreground text-sm">No meals logged yet</p>
-                <p className="text-xs text-muted-foreground">Add meals with macros to see breakdown.</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+              <p className="text-muted-foreground text-sm">No workouts logged yet</p>
+              <p className="text-xs text-muted-foreground">Start logging to see your activity feed.</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
     </div>
   );
 };
 
 export default Dashboard;
-

@@ -2,7 +2,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { User, Menu, PanelLeftClose, PanelLeftOpen, Bell, Settings } from "lucide-react";
+import { User, Menu, Bell, Settings } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const Navbar = ({ onToggleSidebar, onToggleCollapse, collapsed }) => {
@@ -15,10 +15,7 @@ const Navbar = ({ onToggleSidebar, onToggleCollapse, collapsed }) => {
         <Button variant="ghost" size="icon" className="lg:hidden hover:bg-primary/10 transition-colors" onClick={onToggleSidebar}>
           <Menu className="h-5 w-5" />
         </Button>
-        <Button variant="ghost" size="icon" className="hidden lg:inline-flex hover:bg-primary/10 transition-colors text-muted-foreground hover:text-primary" onClick={onToggleCollapse}>
-          {collapsed ? <PanelLeftOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
-        </Button>
-        <div className="flex items-center gap-2.5 cursor-pointer group ml-1 lg:ml-2" onClick={() => navigate("/dashboard")}>
+        <div className="flex items-center gap-2.5 cursor-pointer group" onClick={() => navigate("/dashboard")}>
           <div className="relative flex items-center justify-center p-1 rounded-xl bg-gradient-to-tr from-primary/20 to-primary/5 group-hover:shadow-[0_0_15px_rgba(var(--primary),0.3)] transition-all duration-300">
             <img src="/Logo.png" alt="FitVerse logo" className="h-8 w-8 rounded-lg object-cover group-hover:scale-105 transition-transform duration-300" />
             <div className="absolute inset-0 rounded-xl ring-1 ring-primary/20 group-hover:ring-primary/40 transition-all duration-300" />
