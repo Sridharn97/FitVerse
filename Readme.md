@@ -32,6 +32,73 @@ FitVerse leverages a modern web development stack for performance, scalability, 
 *   **Authentication**: Custom Auth using JWT (`jsonwebtoken`) and password hashing (`bcryptjs`)
 *   **Middleware**: `cors`, `helmet` (for security), `morgan` (for request logging)
 
+## 🔄 User Flow
+
+The typical user journey through FitVerse:
+
+```mermaid
+graph TD
+    A[Welcome / Landing Page] -->|Unauthenticated| B[Authentication]
+    B --> C(Sign Up)
+    B --> D(Log In)
+    C --> E[Dashboard]
+    D --> E
+    
+    A -->|Authenticated| E
+    
+    E --> F[Workouts]
+    E --> G[Diet & Nutrition]
+    E --> H[Progress Dashboard]
+    E --> I[Community]
+    E --> J[Profile & Preferences]
+    
+    F --> F1(Log Exercise & Sets)
+    F --> F2(View Details & Video)
+    
+    G --> G1(Log Meals & Daily Diet)
+    G --> G2(Track Hydration & Goals)
+    
+    H --> H1(View Weight Progress)
+    H --> H2(View Muscle Group Stats)
+    
+    I --> I1(Read Global Posts)
+    I --> I2(Create & Share Post)
+    
+    J --> J1(Update Info & Goals)
+    J --> J2(Logout)
+```
+
+## 🏗️ System Architecture
+
+A high-level view of how the different components of FitVerse interact:
+
+```mermaid
+flowchart LR
+    subgraph Frontend [Frontend Client - Hosted on Vercel]
+        UI[React UI Components<br/>Tailwind CSS & shadcn/ui]
+        State[Data Fetching & State<br/>TanStack React Query]
+        Router[Client Routing<br/>React Router]
+    end
+
+    subgraph Backend [Backend API - Hosted on Render]
+        Controllers[Express Controllers<br/>Business Logic]
+        Middlewares[Auth & Error Handling<br/>JWT Middleware]
+        Models[Data Models<br/>Mongoose ODM]
+    end
+
+    subgraph Database [Database]
+        Collections[(MongoDB Atlas<br/>Cloud Database)]
+    end
+
+    User((User)) -->|Interacts via Browser| UI
+    UI <--> Router
+    UI <--> State
+    State <-->|HTTP JSON Requests API| Middlewares
+    Middlewares <--> Controllers
+    Controllers <--> Models
+    Models <-->|Read / Write Data| Collections
+```
+
 ## 📁 Project Structure
 
 The repository is organized into distinct directories for the frontend and backend to keep the codebase modular and scalable.
