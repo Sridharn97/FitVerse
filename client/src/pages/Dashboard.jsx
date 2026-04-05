@@ -8,7 +8,7 @@ import { CheckCircle2, Circle, Clock, Dumbbell, Flame, TrendingUp, Zap } from "l
 import { DateFilter } from "@/components/shared/DateFilter";
 import { getDateRange, formatFilterLabel } from "@/lib/date-utils";
 import DashboardCharts from "@/components/dashboard/charts/DashboardCharts";
-
+import StreakCalendar from "@/components/dashboard/StreakCalendar";
 function StatCard({ label, value, sub, accent }) {
   return (
     <Card className="relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5">
@@ -178,10 +178,10 @@ const Dashboard = () => {
       accent: "hsl(var(--chart-3))",
     },
     {
-      label: "Workout Streak",
-      value: streak > 0 ? `${streak}d` : "—",
-      sub: streak > 0 ? "Consecutive days active" : "Complete a workout to start",
-      accent: "hsl(var(--chart-1))",
+      label: "Avg Daily Protein",
+      value: `${avgProtein}g`,
+      sub: "Muscle-building fuel",
+      accent: "hsl(var(--chart-4))",
     },
   ];
   // Muscle group last-trained freshness
@@ -248,18 +248,22 @@ const Dashboard = () => {
           <StatCard key={s.label} {...s} />
         ))}
       </div>
-      <DashboardCharts last7Days={last7Days} weightData={weightData} macroData={macroData} totalMacros={totalMacros} />
-      {/* ── Row 3: Recent Activity Feed (full width) ── */}
-      <Card className="overflow-hidden">
-        <CardHeader className="pb-3">
+      {/* ── Row 1: Calendar & Recent Activity ── */}
+      <div className="grid gap-4 lg:grid-cols-2 items-stretch">
+        <div className="lg:col-span-1">
+          <StreakCalendar workouts={workouts} currentStreak={streak} />
+        </div>
+        <div className="lg:col-span-1">
+          <Card className="overflow-hidden h-full flex flex-col">
+            <CardHeader className="pb-2 p-4">
           <SectionLabel
             title="Recent Activity"
             description="Your 5 latest workout sessions"
           />
         </CardHeader>
-        <CardContent className="pt-0">
+        <CardContent className="pt-0 p-4 pb-4">
           {recentWorkouts.length > 0 ? (
-            <div className="grid gap-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+            <div className="flex flex-col gap-2">
               {recentWorkouts.map((w) => {
                 const exerciseCount = (w.exercises || []).length;
                 const categories = [...new Set((w.exercises || []).map((e) => e.category).filter(Boolean))];
@@ -268,52 +272,52 @@ const Dashboard = () => {
                 return (
                   <div
                     key={w.id}
-                    className="group flex flex-col gap-2 rounded-xl border border-border/60 bg-muted/10 p-4 transition-colors hover:bg-muted/30 hover:border-primary/20"
+                    className="group flex items-center justify-between rounded-xl border border-border/60 bg-muted/10 p-3 transition-colors hover:bg-muted/30 hover:border-primary/20"
                   >
-                    {/* Top row: icon + date */}
-                    <div className="flex items-center justify-between">
-                      <div className={`flex h-8 w-8 items-center justify-center rounded-full ${
+                    {/* Left: Icon + Text */}
+                    <div className="flex items-center gap-3">
+                      <div className={`flex shrink-0 h-9 w-9 items-center justify-center rounded-full ${
                         w.completed ? "bg-primary/15 text-primary" : "bg-muted/60 text-muted-foreground"
                       }`}>
                         {w.completed ? <CheckCircle2 className="h-4 w-4" /> : <Circle className="h-4 w-4" />}
                       </div>
+                      <div>
+                        <p className="text-sm font-semibold text-foreground leading-snug">{w.name}</p>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                          <span>{w.day}</span>
+                          {exerciseCount > 0 && (
+                            <>
+                              <span className="text-border">·</span>
+                              <span className="flex items-center gap-0.5">
+                                <Dumbbell className="h-2.5 w-2.5" /> {exerciseCount} ex
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Right: Date + Categories */}
+                    <div className="flex flex-col items-end gap-1.5">
                       <span className="text-[10px] text-muted-foreground flex items-center gap-1">
                         <Clock className="h-3 w-3" />{dateLabel}
                       </span>
-                    </div>
-
-                    {/* Workout name */}
-                    <p className="text-sm font-semibold text-foreground leading-snug line-clamp-1">{w.name}</p>
-
-                    {/* Day + exercise count */}
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <span>{w.day}</span>
-                      {exerciseCount > 0 && (
-                        <>
-                          <span className="text-border">·</span>
-                          <span className="flex items-center gap-0.5">
-                            <Dumbbell className="h-2.5 w-2.5" /> {exerciseCount} ex
-                          </span>
-                        </>
+                      {categories.length > 0 && (
+                        <div className="flex gap-1">
+                          {categories.slice(0, 2).map((cat) => (
+                            <span
+                              key={cat}
+                              className="inline-block text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-primary/8 text-primary/80 border border-primary/10"
+                            >
+                              {cat}
+                            </span>
+                          ))}
+                          {categories.length > 2 && (
+                            <span className="text-[10px] text-muted-foreground">+{categories.length - 2}</span>
+                          )}
+                        </div>
                       )}
                     </div>
-
-                    {/* Category badges */}
-                    {categories.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-auto pt-1 border-t border-border/40">
-                        {categories.slice(0, 2).map((cat) => (
-                          <span
-                            key={cat}
-                            className="inline-block text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-primary/8 text-primary/80 border border-primary/10"
-                          >
-                            {cat}
-                          </span>
-                        ))}
-                        {categories.length > 2 && (
-                          <span className="text-[10px] text-muted-foreground">+{categories.length - 2}</span>
-                        )}
-                      </div>
-                    )}
                   </div>
                 );
               })}
@@ -329,6 +333,11 @@ const Dashboard = () => {
           )}
         </CardContent>
       </Card>
+        </div>
+      </div>
+
+      {/* ── Row 2 & 3: Charts (Handled by DashboardCharts components) ── */}
+      <DashboardCharts last7Days={last7Days} weightData={weightData} macroData={macroData} totalMacros={totalMacros} />
 
     </div>
   );
