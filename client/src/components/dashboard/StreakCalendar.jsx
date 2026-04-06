@@ -44,13 +44,7 @@ export function StreakCalendar({ workouts, currentStreak }) {
 
   return (
     <Card className="h-full border-border/60 shadow-md flex flex-col relative overflow-hidden bg-gradient-to-br from-card/80 to-card">
-      <CardHeader className="pb-2 pt-5 px-5 flex flex-row items-center justify-between">
-        <div>
-          <h2 className="text-xl font-bold flex items-center gap-2">
-            Day {currentStreak || 0}
-            <span className="text-xs font-normal text-muted-foreground ml-1 hidden sm:inline">Streak</span>
-          </h2>
-        </div>
+      <CardHeader className="pb-2 pt-5 px-5 flex flex-row items-center justify-center">
         
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-muted/40" onClick={prevMonth}>
@@ -92,15 +86,17 @@ export function StreakCalendar({ workouts, currentStreak }) {
                     flex items-center justify-center h-8 w-8 rounded-full text-sm font-medium transition-colors
                     ${!isCurrentMonth ? 'text-muted-foreground/30' : 'text-foreground'}
                     ${isToday ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/30' : 'hover:bg-muted/30'}
+                    ${isCompleted && !isToday ? 'bg-primary/20 text-primary' : ''}
                   `}
                 >
-                  {format(day, "d")}
+                  {isCompleted ? (
+                    <Check className={`h-5 w-5 ${isToday ? 'text-primary-foreground' : 'text-primary'}`} strokeWidth={3} />
+                  ) : (
+                    format(day, "d")
+                  )}
                 </div>
                 {/* Visual indicator */}
                 <div className="h-3 flex items-start justify-center mt-0.5">
-                  {isCompleted && (
-                    <Check className={`h-3.5 w-3.5 ${isToday ? 'text-primary-foreground' : 'text-primary'}`} strokeWidth={3} />
-                  )}
                   {isMissed && (
                     <div className="h-1 w-1 rounded-full bg-destructive shadow-[0_0_4px_rgba(var(--destructive),0.6)] mt-0.5" />
                   )}

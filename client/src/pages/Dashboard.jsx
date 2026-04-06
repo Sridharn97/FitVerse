@@ -178,9 +178,9 @@ const Dashboard = () => {
       accent: "hsl(var(--chart-3))",
     },
     {
-      label: "Avg Daily Protein",
-      value: `${avgProtein}g`,
-      sub: "Muscle-building fuel",
+      label: "Current Streak",
+      value: `${streak}`,
+      sub: streak === 1 ? "Consecutive day" : "Consecutive days",
       accent: "hsl(var(--chart-4))",
     },
   ];
