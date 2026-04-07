@@ -74,29 +74,34 @@ A high-level view of how the different components of FitVerse interact:
 
 ```mermaid
 flowchart LR
-    subgraph Frontend [Frontend Client - Hosted on Vercel]
-        UI[React UI Components<br/>Tailwind CSS & shadcn/ui]
-        State[Data Fetching & State<br/>TanStack React Query]
-        Router[Client Routing<br/>React Router]
+    User((User)) -->|Browser| UI
+    
+    subgraph Frontend [React Client]
+        direction TB
+        UI[UI Components] <--> State[State & Fetching]
+        UI <--> Router[React Router]
+    end
+    
+    subgraph Backend [Node.js / Express Server]
+        direction TB
+        State <-->|REST API| Middlewares[JWT Auth Middleware]
+        Middlewares <--> Controllers[Business Logic]
+        Controllers <--> Models[Mongoose Models]
+    end
+    
+    subgraph Database [Storage]
+        Models <-->|Read & Write| DB[(MongoDB Atlas)]
     end
 
-    subgraph Backend [Backend API - Hosted on Render]
-        Controllers[Express Controllers<br/>Business Logic]
-        Middlewares[Auth & Error Handling<br/>JWT Middleware]
-        Models[Data Models<br/>Mongoose ODM]
-    end
-
-    subgraph Database [Database]
-        Collections[(MongoDB Atlas<br/>Cloud Database)]
-    end
-
-    User((User)) -->|Interacts via Browser| UI
-    UI <--> Router
-    UI <--> State
-    State <-->|HTTP JSON Requests API| Middlewares
-    Middlewares <--> Controllers
-    Controllers <--> Models
-    Models <-->|Read / Write Data| Collections
+    classDef client fill:#e0f2fe,stroke:#0284c7,stroke-width:2px;
+    classDef server fill:#dcfce7,stroke:#16a34a,stroke-width:2px;
+    classDef db fill:#fef08a,stroke:#ca8a04,stroke-width:2px;
+    classDef user fill:#f3f4f6,stroke:#4b5563,stroke-width:2px;
+    
+    class Frontend client;
+    class Backend server;
+    class Database db;
+    class User user;
 ```
 
 ## 📁 Project Structure
