@@ -7,7 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Download, Monitor, Shield, Bell, Calendar } from "lucide-react";
+import { Download, Monitor, Shield, Calendar } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -23,11 +23,6 @@ const Preferences = () => {
     // Profile Visibility — always sourced from the actual user object, not localStorage
     // This prevents a new account from inheriting a previous session's anonymous setting
     const [isAnonymous, setIsAnonymous] = useState(user?.isAnonymous ?? false);
-
-    // Alerts
-    const [alertsMentions, setAlertsMentions] = useState(localStorage.getItem("fitverse_alerts_mentions") !== "false");
-    const [alertsUpvotes, setAlertsUpvotes] = useState(localStorage.getItem("fitverse_alerts_upvotes") !== "false");
-    const [alertsReplies, setAlertsReplies] = useState(localStorage.getItem("fitverse_alerts_replies") !== "false");
 
     // Chart Customization
     const [chartDays, setChartDays] = useState(() => {
@@ -168,28 +163,6 @@ const Preferences = () => {
                                         </div>
                                     ))}
                                 </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Community Alerts */}
-                    <div className="p-6 sm:p-8 flex flex-col md:flex-row gap-6 hover:bg-muted/10 transition-colors">
-                        <div className="space-y-1 md:w-1/3">
-                            <h3 className="flex items-center gap-2 font-medium leading-none text-foreground"><Bell className="h-4 w-4 text-muted-foreground" /> Community Alerts</h3>
-                            <p className="text-sm text-muted-foreground pt-1">Manage notifications from the forum.</p>
-                        </div>
-                        <div className="flex flex-col gap-4 md:w-2/3">
-                            <div className="flex items-center justify-between py-1">
-                                <Label className="font-medium text-sm cursor-pointer">Mentions (@username)</Label>
-                                <Switch checked={alertsMentions} onCheckedChange={(val) => { setAlertsMentions(val); localStorage.setItem("fitverse_alerts_mentions", val) }} />
-                            </div>
-                            <div className="flex items-center justify-between py-1">
-                                <Label className="font-medium text-sm cursor-pointer">Upvotes on your posts</Label>
-                                <Switch checked={alertsUpvotes} onCheckedChange={(val) => { setAlertsUpvotes(val); localStorage.setItem("fitverse_alerts_upvotes", val) }} />
-                            </div>
-                            <div className="flex items-center justify-between py-1">
-                                <Label className="font-medium text-sm cursor-pointer">Replies to your posts</Label>
-                                <Switch checked={alertsReplies} onCheckedChange={(val) => { setAlertsReplies(val); localStorage.setItem("fitverse_alerts_replies", val) }} />
                             </div>
                         </div>
                     </div>

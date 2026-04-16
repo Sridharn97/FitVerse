@@ -2,7 +2,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { User, Menu, Bell, Settings } from "lucide-react";
+import { User, Menu, Settings } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const Navbar = ({ onToggleSidebar, onToggleCollapse, collapsed }) => {
@@ -27,12 +27,6 @@ const Navbar = ({ onToggleSidebar, onToggleCollapse, collapsed }) => {
       </div>
 
       {user && (<div className="flex items-center gap-2 sm:gap-4">
-        <Button variant="ghost" size="icon" className="relative rounded-full hover:bg-primary/10 text-muted-foreground hover:text-primary transition-all duration-200">
-          <Bell className="h-5 w-5" />
-          <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-destructive border-[1.5px] border-background animate-pulse"></span>
-        </Button>
-
-        <div className="h-6 w-[1px] bg-border/50 hidden sm:block mx-1"></div>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
