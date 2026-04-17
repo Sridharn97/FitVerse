@@ -9,6 +9,7 @@ function buildHeaders(customHeaders = {}) {
 
 export async function apiRequest(path, options = {}) {
   const { timeoutMs, ...fetchOptions } = options;
+  const isFormDataBody = typeof FormData !== 'undefined' && fetchOptions.body instanceof FormData;
 
   const controller =
     !fetchOptions.signal && typeof timeoutMs === 'number' ? new AbortController() : null;
@@ -19,7 +20,7 @@ export async function apiRequest(path, options = {}) {
     const response = await fetch(`${API_BASE_URL}${path}`, {
       ...fetchOptions,
       credentials: 'include',
-      headers: buildHeaders(fetchOptions.headers),
+      headers: isFormDataBody ? (fetchOptions.headers || {}) : buildHeaders(fetchOptions.headers),
       signal: fetchOptions.signal ?? controller?.signal,
     });
 

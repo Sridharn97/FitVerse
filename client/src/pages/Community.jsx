@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFitness } from "@/contexts/FitnessContext";
+import { apiRequest } from "@/lib/api";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,13 +11,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Plus, Heart, MessageCircle, Trash2, Send, Search } from "lucide-react";
+import { Plus, Heart, MessageCircle, Trash2, Send, Search, ImagePlus } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
 const CATEGORIES = ["General", "Workout Tips", "Nutrition", "Motivation", "Progress", "Questions"];
 
 const Community = () => {
   const { user } = useAuth();
   const { posts, addPost, likePost, addComment, deletePost } = useFitness();
+  const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -25,13 +28,43 @@ const Community = () => {
   const [filterCategory, setFilterCategory] = useState("all");
   const [commentTexts, setCommentTexts] = useState({});
   const [expandedComments, setExpandedComments] = useState({});
-  const handleCreate = () => {
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState("");
+  const [isPosting, setIsPosting] = useState(false);
+
+  const handleCreate = async () => {
     if (!title || !content || !user)
       return;
-    addPost({ userId: user.id, title, content, category });
-    setTitle("");
-    setContent("");
-    setOpen(false);
+
+    try {
+      setIsPosting(true);
+      let imageUrl = "";
+
+      if (imageFile) {
+        const formData = new FormData();
+        formData.append("image", imageFile);
+        const uploadRes = await apiRequest("/community/upload-image", {
+          method: "POST",
+          body: formData,
+        });
+        imageUrl = uploadRes.data?.url || "";
+      }
+
+      await addPost({ userId: user.id, title, content, category, imageUrl });
+      setTitle("");
+      setContent("");
+      setImageFile(null);
+      setImagePreview("");
+      setOpen(false);
+    } catch (error) {
+      toast({
+        title: "Post failed",
+        description: error?.message || "Could not create post. Try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsPosting(false);
+    }
   };
   const handleComment = (postId) => {
     if (!commentTexts[postId]?.trim() || !user)
@@ -73,7 +106,26 @@ const Community = () => {
               <Label>Content</Label>
               <Textarea placeholder="Share your thoughts..." value={content} onChange={e => setContent(e.target.value)} rows={4} />
             </div>
-            <Button onClick={handleCreate} className="w-full" disabled={!title || !content}>Post</Button>
+            <div className="space-y-2">
+              <Label>Photo (optional)</Label>
+              <Input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0] || null;
+                  setImageFile(file);
+                  setImagePreview(file ? URL.createObjectURL(file) : "");
+                }}
+              />
+              {imagePreview && (
+                <div className="overflow-hidden rounded-md border border-border">
+                  <img src={imagePreview} alt="Selected preview" className="h-44 w-full object-cover" />
+                </div>
+              )}
+            </div>
+            <Button onClick={handleCreate} className="w-full" disabled={!title || !content || isPosting}>
+              {isPosting ? "Posting..." : (<><ImagePlus className="mr-2 h-4 w-4" /> Post</>)}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -126,6 +178,11 @@ const Community = () => {
         <CardContent className="space-y-3">
           <h3 className="text-lg font-semibold text-foreground">{post.title}</h3>
           <p className="text-sm text-muted-foreground leading-relaxed">{post.content}</p>
+          {post.imageUrl && (
+            <div className="overflow-hidden rounded-lg border border-border">
+              <img src={post.imageUrl} alt={post.title} className="max-h-96 w-full object-cover" loading="lazy" />
+            </div>
+          )}
           <div className="flex items-center gap-4 pt-2">
             <Button variant="ghost" size="sm" onClick={() => user && likePost(post.id, user.id)} className={post.likes.includes(user?.id || "") ? "text-destructive" : ""}>
               <Heart className={`mr-1 h-4 w-4 ${post.likes.includes(user?.id || "") ? "fill-current" : ""}`} />

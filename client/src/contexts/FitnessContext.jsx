@@ -87,6 +87,7 @@ const toUiPost = (post) => ({
     userName: post.user?.isAnonymous === true ? "Anonymous" : (post.user?.name || "Anonymous"),
     title: post.title,
     content: post.content,
+    imageUrl: post.imageUrl || "",
     category: post.category || "General",
     likes: (post.likes || []).map((likeId) => likeId.toString()),
     comments: (post.comments || []).map((comment) => ({

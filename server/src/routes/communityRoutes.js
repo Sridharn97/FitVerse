@@ -1,5 +1,6 @@
 const express = require('express');
 const { body } = require('express-validator');
+const multer = require('multer');
 
 const {
   getPosts,
@@ -8,11 +9,16 @@ const {
   deletePost,
   toggleLike,
   addComment,
+  uploadPostImage,
 } = require('../controllers/communityController');
 const { protect } = require('../middleware/authMiddleware');
 const validateRequest = require('../middleware/validateRequest');
 
 const router = express.Router();
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+});
 
 router
   .route('/')
@@ -26,6 +32,8 @@ router
     validateRequest,
     createPost
   );
+
+router.post('/upload-image', protect, upload.single('image'), uploadPostImage);
 
 router.route('/:id').put(protect, updatePost).delete(protect, deletePost);
 router.post('/:id/like', protect, toggleLike);

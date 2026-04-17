@@ -1,4 +1,21 @@
 const CommunityPost = require('../models/CommunityPost');
+const { cloudinary, isCloudinaryConfigured } = require('../config/cloudinary');
+
+const uploadBufferToCloudinary = (buffer, folder) =>
+  new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      {
+        folder,
+        resource_type: 'image',
+      },
+      (error, result) => {
+        if (error) return reject(error);
+        return resolve(result);
+      }
+    );
+
+    stream.end(buffer);
+  });
 
 const getPosts = async (_req, res) => {
   const posts = await CommunityPost.find()
@@ -88,4 +105,36 @@ const addComment = async (req, res) => {
   res.status(201).json({ success: true, message: 'Comment added', data: populated });
 };
 
-module.exports = { getPosts, createPost, updatePost, deletePost, toggleLike, addComment };
+const uploadPostImage = async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ success: false, message: 'Image file is required' });
+  }
+
+  if (!String(req.file.mimetype || '').startsWith('image/')) {
+    return res.status(400).json({ success: false, message: 'Only image files are allowed' });
+  }
+
+  if (!isCloudinaryConfigured()) {
+    return res.status(500).json({ success: false, message: 'Cloudinary is not configured on the server' });
+  }
+
+  try {
+    const uploaded = await uploadBufferToCloudinary(req.file.buffer, 'fitverse/community');
+
+    return res.status(201).json({
+      success: true,
+      message: 'Image uploaded',
+      data: {
+        url: uploaded.secure_url,
+        publicId: uploaded.public_id,
+      },
+    });
+  } catch (error) {
+    return res.status(502).json({
+      success: false,
+      message: `Cloudinary upload failed: ${error?.message || 'unknown error'}`,
+    });
+  }
+};
+
+module.exports = { getPosts, createPost, updatePost, deletePost, toggleLike, addComment, uploadPostImage };
