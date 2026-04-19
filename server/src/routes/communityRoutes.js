@@ -20,6 +20,11 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 },
 });
 
+const uploadCommunityImages = upload.fields([
+  { name: 'images', maxCount: 4 },
+  { name: 'image', maxCount: 4 },
+]);
+
 router
   .route('/')
   .get(getPosts)
@@ -33,7 +38,8 @@ router
     createPost
   );
 
-router.post('/upload-image', protect, upload.single('image'), uploadPostImage);
+router.post('/upload-images', protect, uploadCommunityImages, uploadPostImage);
+router.post('/upload-image', protect, uploadCommunityImages, uploadPostImage);
 
 router.route('/:id').put(protect, updatePost).delete(protect, deletePost);
 router.post('/:id/like', protect, toggleLike);

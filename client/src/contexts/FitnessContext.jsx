@@ -5,6 +5,51 @@ import { useAuth } from "@/contexts/AuthContext";
 const FitnessContext = createContext({});
 export const useFitness = () => useContext(FitnessContext);
 
+const FITNESS_CACHE_PREFIX = "fitverse_fitness_cache:";
+
+const getCacheKey = (userId) => `${FITNESS_CACHE_PREFIX}${userId}`;
+
+const readFitnessCache = (userId) => {
+    if (!userId || typeof window === "undefined") {
+        return null;
+    }
+
+    try {
+        const raw = window.localStorage.getItem(getCacheKey(userId));
+        if (!raw) {
+            return null;
+        }
+
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed !== "object") {
+            return null;
+        }
+
+        return {
+            workouts: Array.isArray(parsed.workouts) ? parsed.workouts : [],
+            progress: Array.isArray(parsed.progress) ? parsed.progress : [],
+            meals: Array.isArray(parsed.meals) ? parsed.meals : [],
+            goal: parsed.goal && typeof parsed.goal === "object" ? parsed.goal : null,
+            posts: Array.isArray(parsed.posts) ? parsed.posts : [],
+        };
+    }
+    catch (_error) {
+        return null;
+    }
+};
+
+const writeFitnessCache = (userId, payload) => {
+    if (!userId || typeof window === "undefined") {
+        return;
+    }
+
+    try {
+        window.localStorage.setItem(getCacheKey(userId), JSON.stringify(payload));
+    }
+    catch (_error) {
+    }
+};
+
 const toUiWorkout = (workout) => ({
     id: workout._id,
     name: workout.title,
@@ -88,6 +133,7 @@ const toUiPost = (post) => ({
     title: post.title,
     content: post.content,
     imageUrl: post.imageUrl || "",
+    imageUrls: Array.isArray(post.imageUrls) && post.imageUrls.length > 0 ? post.imageUrls : (post.imageUrl ? [post.imageUrl] : []),
     category: post.category || "General",
     likes: (post.likes || []).map((likeId) => likeId.toString()),
     comments: (post.comments || []).map((comment) => ({
@@ -109,6 +155,8 @@ export const FitnessProvider = ({ children }) => {
     const [posts, setPosts] = useState([]);
 
     useEffect(() => {
+        let cancelled = false;
+
         const loadData = async () => {
             if (!user) {
                 setWorkouts([]);
@@ -119,6 +167,15 @@ export const FitnessProvider = ({ children }) => {
                 return;
             }
 
+            const cached = readFitnessCache(user.id);
+            if (cached) {
+                setWorkouts(cached.workouts);
+                setProgress(cached.progress);
+                setMeals(cached.meals);
+                setGoalState(cached.goal);
+                setPosts(cached.posts);
+            }
+
             const [workoutsRes, progressRes, mealsRes, goalRes, postsRes] = await Promise.all([
                 apiRequest("/workouts"),
                 apiRequest("/progress"),
@@ -127,25 +184,57 @@ export const FitnessProvider = ({ children }) => {
                 apiRequest("/community"),
             ]);
 
-            setWorkouts((workoutsRes.data || []).map(toUiWorkout));
-            setProgress((progressRes.data || []).map(toUiProgress).reverse());
-            setMeals((mealsRes.data || []).map(toUiMeal));
-            setGoalState(goalRes.data ? { 
+            if (cancelled) {
+                return;
+            }
+
+            const nextWorkouts = (workoutsRes.data || []).map(toUiWorkout);
+            const nextProgress = (progressRes.data || []).map(toUiProgress).reverse();
+            const nextMeals = (mealsRes.data || []).map(toUiMeal);
+            const nextGoal = goalRes.data ? {
                 type: goalRes.data.type, 
                 targetCalories: goalRes.data.targetCalories,
                 trackingMode: goalRes.data.trackingMode || 'static'
-            } : null);
-            setPosts((postsRes.data || []).map(toUiPost));
+            } : null;
+            const nextPosts = (postsRes.data || []).map(toUiPost);
+
+            setWorkouts(nextWorkouts);
+            setProgress(nextProgress);
+            setMeals(nextMeals);
+            setGoalState(nextGoal);
+            setPosts(nextPosts);
+
+            writeFitnessCache(user.id, {
+                workouts: nextWorkouts,
+                progress: nextProgress,
+                meals: nextMeals,
+                goal: nextGoal,
+                posts: nextPosts,
+            });
         };
 
         loadData().catch(() => {
-            setWorkouts([]);
-            setProgress([]);
-            setMeals([]);
-            setGoalState(null);
-            setPosts([]);
+            // Keep existing/cached data on transient fetch failures.
         });
+
+        return () => {
+            cancelled = true;
+        };
     }, [user]);
+
+    useEffect(() => {
+        if (!user) {
+            return;
+        }
+
+        writeFitnessCache(user.id, {
+            workouts,
+            progress,
+            meals,
+            goal,
+            posts,
+        });
+    }, [user, workouts, progress, meals, goal, posts]);
 
     const addWorkout = useCallback(async (workout) => {
         const res = await apiRequest("/workouts", {

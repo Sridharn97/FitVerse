@@ -10,8 +10,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Pencil, Trash2, UserRound, Heart, MessageCircle } from "lucide-react";
+import { Pencil, Trash2, UserRound, Heart, MessageCircle, ImagePlus, X } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { apiRequest } from "@/lib/api";
 
 const Profile = () => {
   const { user, updateProfile } = useAuth();
@@ -33,6 +34,20 @@ const Profile = () => {
   const [editContent, setEditContent] = useState("");
   const [savingPostId, setSavingPostId] = useState("");
   const [expandedComments, setExpandedComments] = useState({});
+
+  const [editImageFiles, setEditImageFiles] = useState([]);
+  const [editImagePreviews, setEditImagePreviews] = useState([]);
+  const [existingImagesToKeep, setExistingImagesToKeep] = useState([]);
+  
+  const handleEditImageChange = (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length + editImageFiles.length + existingImagesToKeep.length > 4) {
+      toast({ title: "Limit exceeded", description: "You can upload up to 4 images max.", variant: "destructive" });
+      return;
+    }
+    setEditImageFiles(prev => [...prev, ...files]);
+    setEditImagePreviews(prev => [...prev, ...files.map(f => URL.createObjectURL(f))]);
+  };
 
   const myPosts = posts
     .filter((post) => post.userId === user?.id)
@@ -99,6 +114,9 @@ const Profile = () => {
     setEditingPost(post);
     setEditTitle(post.title);
     setEditContent(post.content);
+    setExistingImagesToKeep(post.imageUrls || []);
+    setEditImageFiles([]);
+    setEditImagePreviews([]);
   };
 
   const handleUpdatePost = async () => {
@@ -107,10 +125,25 @@ const Profile = () => {
 
     try {
       setSavingPostId(editingPost.id);
+      
+      let finalImageUrls = [...existingImagesToKeep];
+
+      if (editImageFiles.length > 0) {
+        const formData = new FormData();
+        editImageFiles.forEach(f => formData.append("images", f));
+        
+        const uploadRes = await apiRequest("/community/upload-images", {
+           method: "POST",
+           body: formData
+        });
+        finalImageUrls = [...finalImageUrls, ...(uploadRes.data?.urls || [])];
+      }
+
       await updatePost(editingPost.id, {
         title: editTitle.trim(),
         content: editContent.trim(),
         category: editingPost.category,
+        imageUrls: finalImageUrls
       });
       toast({ title: "Post updated", description: "Your post has been updated successfully" });
       setEditingPost(null);
@@ -254,6 +287,17 @@ const Profile = () => {
             </div>
           </div>
           <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{post.content}</p>
+          
+          {post.imageUrls && post.imageUrls.length > 0 && (
+            <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+              {post.imageUrls.map((url, i) => (
+                <div key={i} className="h-20 w-20 shrink-0 overflow-hidden rounded-md border border-border/50">
+                  <img src={url} alt={`Post preview ${i + 1}`} className="h-full w-full object-cover" loading="lazy" />
+                </div>
+              ))}
+            </div>
+          )}
+
           <div className="mt-4 flex items-center justify-between border-t border-border/50 pt-3">
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground bg-muted/30 px-2.5 py-1 rounded-md">
@@ -313,6 +357,38 @@ const Profile = () => {
             <Label>Content</Label>
             <Textarea rows={5} value={editContent} onChange={(e) => setEditContent(e.target.value)} />
           </div>
+
+          <div className="space-y-3">
+            <Label>Images</Label>
+            <div className="flex flex-wrap gap-2">
+              {existingImagesToKeep.map((url, i) => (
+                <div key={`exist-${i}`} className="relative h-16 w-16 group rounded-md border border-border/50 overflow-hidden">
+                  <img src={url} className="h-full w-full object-cover" />
+                  <button onClick={() => setExistingImagesToKeep(prev => prev.filter((_, idx) => idx !== i))} className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-white">
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+              {editImagePreviews.map((preview, i) => (
+                <div key={`new-${i}`} className="relative h-16 w-16 group rounded-md border border-border/50 overflow-hidden">
+                  <img src={preview} className="h-full w-full object-cover" />
+                  <button onClick={() => {
+                      setEditImageFiles(prev => prev.filter((_, idx) => idx !== i));
+                      setEditImagePreviews(prev => prev.filter((_, idx) => idx !== i));
+                    }} className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-white">
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+              {(existingImagesToKeep.length + editImageFiles.length) < 4 && (
+                <Label className="h-16 w-16 cursor-pointer flex items-center justify-center rounded-md border-2 border-dashed border-border/60 hover:bg-muted/50 transition-colors">
+                  <ImagePlus className="h-5 w-5 text-muted-foreground" />
+                  <Input type="file" accept="image/*" multiple onChange={handleEditImageChange} className="hidden" />
+                </Label>
+              )}
+            </div>
+          </div>
+
           <Button onClick={handleUpdatePost} disabled={!editTitle.trim() || !editContent.trim() || Boolean(savingPostId)} className="w-full">
             Update Post
           </Button>

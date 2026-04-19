@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFitness } from "@/contexts/FitnessContext";
 import { apiRequest } from "@/lib/api";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,51 +11,104 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Plus, Heart, MessageCircle, Trash2, Send, Search, ImagePlus } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
+import { Plus, Heart, MessageCircle, Trash2, Send, Search, ImagePlus, X, Share2, MoreHorizontal } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+
 const CATEGORIES = ["General", "Workout Tips", "Nutrition", "Motivation", "Progress", "Questions"];
 
 const Community = () => {
   const { user } = useAuth();
   const { posts, addPost, likePost, addComment, deletePost } = useFitness();
   const { toast } = useToast();
+  
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [category, setCategory] = useState("General");
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
+  
   const [commentTexts, setCommentTexts] = useState({});
   const [expandedComments, setExpandedComments] = useState({});
-  const [imageFile, setImageFile] = useState(null);
-  const [imagePreview, setImagePreview] = useState("");
+  
+  const [imageFiles, setImageFiles] = useState([]);
+  const [imagePreviews, setImagePreviews] = useState([]);
   const [isPosting, setIsPosting] = useState(false);
+  
+  const fileInputRef = useRef(null);
+
+  const handleImageChange = (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length + imageFiles.length > 4) {
+      toast({
+        title: "Limit exceeded",
+        description: "You can upload up to 4 images max.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setImageFiles(prev => [...prev, ...files]);
+    
+    const newPreviews = files.map(file => URL.createObjectURL(file));
+    setImagePreviews(prev => [...prev, ...newPreviews]);
+  };
+
+  const removeImage = (indexToRemove) => {
+    setImageFiles(prev => prev.filter((_, idx) => idx !== indexToRemove));
+    setImagePreviews(prev => {
+      URL.revokeObjectURL(prev[indexToRemove]);
+      return prev.filter((_, idx) => idx !== indexToRemove);
+    });
+  };
 
   const handleCreate = async () => {
-    if (!title || !content || !user)
-      return;
+    if (!title || !content || !user) return;
 
     try {
       setIsPosting(true);
-      let imageUrl = "";
+      let imageUrls = [];
 
-      if (imageFile) {
-        const formData = new FormData();
-        formData.append("image", imageFile);
-        const uploadRes = await apiRequest("/community/upload-image", {
-          method: "POST",
-          body: formData,
-        });
-        imageUrl = uploadRes.data?.url || "";
+      if (imageFiles.length > 0) {
+        let uploadRes;
+
+        try {
+          const singleFormData = new FormData();
+          imageFiles.forEach(file => singleFormData.append("image", file));
+
+          uploadRes = await apiRequest("/community/upload-image", {
+            method: "POST",
+            body: singleFormData,
+          });
+        } catch (_singleEndpointError) {
+          const multiFormData = new FormData();
+          imageFiles.forEach(file => multiFormData.append("images", file));
+
+          uploadRes = await apiRequest("/community/upload-images", {
+            method: "POST",
+            body: multiFormData,
+          });
+        }
+
+        imageUrls = uploadRes.data?.urls || [];
       }
 
-      await addPost({ userId: user.id, title, content, category, imageUrl });
+      await addPost({ userId: user.id, title, content, category, imageUrls });
+      
+      // Reset form
       setTitle("");
       setContent("");
-      setImageFile(null);
-      setImagePreview("");
+      setImageFiles([]);
+      setImagePreviews([]);
       setOpen(false);
+      
+      toast({
+        title: "Success",
+        description: "Your post has been published!",
+      });
     } catch (error) {
       toast({
         title: "Post failed",
@@ -66,159 +119,328 @@ const Community = () => {
       setIsPosting(false);
     }
   };
+
   const handleComment = (postId) => {
-    if (!commentTexts[postId]?.trim() || !user)
-      return;
+    if (!commentTexts[postId]?.trim() || !user) return;
     addComment(postId, { content: commentTexts[postId] });
     setCommentTexts(prev => ({ ...prev, [postId]: "" }));
   };
+
+  const handleShare = (post) => {
+    const postUrl = `${window.location.origin}/community#post-${post.id}`;
+    if (navigator.share) {
+      navigator.share({
+        title: post.title,
+        text: `Check out this post: ${post.title} on FitVerse`,
+        url: postUrl
+      }).catch((err) => console.error("Error sharing:", err));
+    } else {
+      navigator.clipboard.writeText(postUrl);
+      toast({
+        title: "Link copied!",
+        description: "Post link copied to clipboard.",
+      });
+    }
+  };
+
   const filtered = posts
     .filter(p => filterCategory === "all" || p.category === filterCategory)
     .filter(p => !searchQuery || p.title.toLowerCase().includes(searchQuery.toLowerCase()) || p.content.toLowerCase().includes(searchQuery.toLowerCase()))
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  return (<div className="space-y-6">
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground md:text-3xl">Community</h1>
-        <p className="text-muted-foreground mt-1">Connect with fellow fitness enthusiasts</p>
-      </div>
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogTrigger asChild>
-          <Button><Plus className="mr-2 h-4 w-4" /> New Post</Button>
-        </DialogTrigger>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Create Post</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Title</Label>
-              <Input placeholder="What's on your mind?" value={title} onChange={e => setTitle(e.target.value)} />
+
+  return (
+    <div className="space-y-8 animate-in fade-in duration-500 pb-8">
+      {/* Header Section */}
+      <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between bg-card/50 p-6 rounded-2xl border border-border/40 backdrop-blur-sm shadow-sm relative overflow-hidden">
+        <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-primary/10 rounded-full blur-3xl opacity-50 pointer-events-none" />
+        
+        <div className="relative z-10">
+          <Badge className="mb-2 bg-primary/20 text-primary hover:bg-primary/30 border-none transition-colors">Community Hub</Badge>
+          <h1 className="text-3xl font-extrabold tracking-tight text-foreground md:text-4xl">
+            Discussion <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-emerald-400">Board</span>
+          </h1>
+        </div>
+        
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild>
+            <Button size="lg" className="rounded-full shadow-lg shadow-primary/25 group relative z-10">
+              <Plus className="mr-2 h-5 w-5 transition-transform group-hover:rotate-90" /> 
+              Create Post
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[550px] rounded-2xl p-0 overflow-hidden border-border/50">
+            <div className="px-6 py-4 bg-muted/40 border-b border-border/50 flex justify-between items-center">
+              <DialogTitle className="text-xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">Create a new post</DialogTitle>
             </div>
-            <div className="space-y-2">
-              <Label>Category</Label>
-              <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Content</Label>
-              <Textarea placeholder="Share your thoughts..." value={content} onChange={e => setContent(e.target.value)} rows={4} />
-            </div>
-            <div className="space-y-2">
-              <Label>Photo (optional)</Label>
-              <Input
-                type="file"
-                accept="image/*"
-                onChange={(e) => {
-                  const file = e.target.files?.[0] || null;
-                  setImageFile(file);
-                  setImagePreview(file ? URL.createObjectURL(file) : "");
-                }}
-              />
-              {imagePreview && (
-                <div className="overflow-hidden rounded-md border border-border">
-                  <img src={imagePreview} alt="Selected preview" className="h-44 w-full object-cover" />
+            
+            <div className="p-6 space-y-5">
+              <div className="flex gap-4 items-start">
+                <Avatar className="h-10 w-10 border border-border">
+                  <AvatarFallback className="bg-primary/10 text-primary font-bold">
+                    {user?.name?.charAt(0).toUpperCase() || "U"}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 space-y-4">
+                  <Input 
+                    placeholder="An interesting title" 
+                    value={title} 
+                    onChange={e => setTitle(e.target.value)} 
+                    className="border-none bg-accent/30 text-lg font-medium focus-visible:ring-1"
+                  />
+                  
+                  <Textarea 
+                    placeholder="What are your fitness thoughts today? Share your journey..." 
+                    value={content} 
+                    onChange={e => setContent(e.target.value)} 
+                    className="min-h-[120px] resize-none border-none bg-accent/30 focus-visible:ring-1" 
+                  />
+                </div>
+              </div>
+              
+              {/* Image Previews */}
+              {imagePreviews.length > 0 && (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pt-2">
+                  {imagePreviews.map((preview, idx) => (
+                    <div key={idx} className="relative group overflow-hidden rounded-lg aspect-square border border-border/50">
+                      <img src={preview} alt="preview" className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-110" />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <Button size="icon" variant="destructive" onClick={() => removeImage(idx)} className="h-8 w-8 rounded-full scale-75 group-hover:scale-100 transition-transform">
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
-            </div>
-            <Button onClick={handleCreate} className="w-full" disabled={!title || !content || isPosting}>
-              {isPosting ? "Posting..." : (<><ImagePlus className="mr-2 h-4 w-4" /> Post</>)}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </div>
-
-    <div className="flex flex-col gap-3 sm:flex-row">
-      <div className="relative flex-1">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input placeholder="Search posts..." className="pl-9" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
-      </div>
-      <Select value={filterCategory} onValueChange={setFilterCategory}>
-        <SelectTrigger className="w-full sm:w-[180px]"><SelectValue placeholder="Category" /></SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All Categories</SelectItem>
-          {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-        </SelectContent>
-      </Select>
-    </div>
-
-    {filtered.length === 0 ? (<Card>
-      <CardContent className="flex flex-col items-center py-12">
-        <MessageCircle className="h-12 w-12 text-muted-foreground mb-4" />
-        <p className="text-muted-foreground">No posts yet. Start the conversation!</p>
-      </CardContent>
-    </Card>) : (<div className="space-y-4">
-      {filtered.map(post => (<Card key={post.id}>
-        <CardHeader className="pb-3">
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-3">
-              <Avatar className="h-10 w-10">
-                <AvatarFallback className="bg-primary text-primary-foreground">
-                  {post.userName.charAt(0).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <p className="text-sm font-semibold text-foreground">
-                  {post.userName}
-                </p>
-                <p className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(post.date), { addSuffix: true })}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge variant="outline">{post.category}</Badge>
-              {user?.id === post.userId && (<Button variant="ghost" size="icon" onClick={() => deletePost(post.id)}>
-                <Trash2 className="h-4 w-4 text-destructive" />
-              </Button>)}
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <h3 className="text-lg font-semibold text-foreground">{post.title}</h3>
-          <p className="text-sm text-muted-foreground leading-relaxed">{post.content}</p>
-          {post.imageUrl && (
-            <div className="overflow-hidden rounded-lg border border-border">
-              <img src={post.imageUrl} alt={post.title} className="max-h-96 w-full object-cover" loading="lazy" />
-            </div>
-          )}
-          <div className="flex items-center gap-4 pt-2">
-            <Button variant="ghost" size="sm" onClick={() => user && likePost(post.id, user.id)} className={post.likes.includes(user?.id || "") ? "text-destructive" : ""}>
-              <Heart className={`mr-1 h-4 w-4 ${post.likes.includes(user?.id || "") ? "fill-current" : ""}`} />
-              {post.likes.length}
-            </Button>
-            <Button variant="ghost" size="sm" onClick={() => setExpandedComments(prev => ({ ...prev, [post.id]: !prev[post.id] }))}>
-              <MessageCircle className="mr-1 h-4 w-4" />
-              {post.comments.length}
-            </Button>
-          </div>
-
-          {expandedComments[post.id] && (<div className="space-y-3 border-t border-border pt-3">
-            {post.comments.map(c => (<div key={c.id} className="flex gap-3">
-              <Avatar className="h-7 w-7">
-                <AvatarFallback className="text-xs bg-secondary text-secondary-foreground">{c.userName.charAt(0)}</AvatarFallback>
-              </Avatar>
-              <div>
+              
+              <div className="flex items-center justify-between pt-4 border-t border-border/50">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-foreground">
-                    {c.userName}
-                  </span>
-                  <span className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(c.date), { addSuffix: true })}</span>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="rounded-full hover:bg-primary/10 hover:text-primary transition-colors text-muted-foreground"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={imageFiles.length >= 4}
+                  >
+                    <ImagePlus className="h-5 w-5" />
+                  </Button>
+                  <Input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    onChange={handleImageChange}
+                  />
+                  
+                  <Select value={category} onValueChange={setCategory}>
+                    <SelectTrigger className="w-[140px] border-none bg-muted/40 h-9 rounded-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CATEGORIES.map(c => <SelectItem key={c} value={c} className="rounded-md">{c}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </div>
-                <p className="text-sm text-muted-foreground">{c.content}</p>
+                
+                <Button onClick={handleCreate} disabled={!title || !content || isPosting} className="rounded-full px-6">
+                  {isPosting ? "Posting..." : "Publish"}
+                </Button>
               </div>
-            </div>))}
-            <div className="flex gap-2">
-              <Input placeholder="Write a comment..." value={commentTexts[post.id] || ""} onChange={e => setCommentTexts(prev => ({ ...prev, [post.id]: e.target.value }))} onKeyDown={e => e.key === "Enter" && handleComment(post.id)} />
-              <Button size="icon" onClick={() => handleComment(post.id)}>
-                <Send className="h-4 w-4" />
-              </Button>
             </div>
-          </div>)}
-        </CardContent>
-      </Card>))}
-    </div>)}
-  </div>);
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {/* Controls Section */}
+      <div className="flex flex-col gap-3 sm:flex-row">
+        <div className="relative flex-1 group">
+          <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
+          <Input 
+            placeholder="Search discussions, topics, or authors..." 
+            className="pl-11 rounded-xl bg-card border-border/50 focus-visible:ring-primary/30 py-6 placeholder:text-muted-foreground/70 shadow-sm" 
+            value={searchQuery} 
+            onChange={e => setSearchQuery(e.target.value)} 
+          />
+        </div>
+        <Select value={filterCategory} onValueChange={setFilterCategory}>
+          <SelectTrigger className="w-full sm:w-[200px] rounded-xl bg-card border-border/50 py-6 shadow-sm">
+            <SelectValue placeholder="Category filter" />
+          </SelectTrigger>
+          <SelectContent className="rounded-xl">
+            <SelectItem value="all">All Categories</SelectItem>
+            {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Feed Section */}
+      {filtered.length === 0 ? (
+        <Card className="border-dashed border-2 border-border/60 bg-muted/20 rounded-2xl">
+          <CardContent className="flex flex-col items-center justify-center py-20 text-center">
+            <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mb-6 shadow-inner">
+              <MessageCircle className="h-10 w-10 text-muted-foreground opacity-50" />
+            </div>
+            <h3 className="text-xl font-semibold mb-2">No posts found</h3>
+            <p className="text-muted-foreground max-w-sm">Be the first to start a conversation or try a different search term.</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="flex flex-col gap-8 max-w-[540px] mx-auto w-full pb-10">
+          {filtered.map((post, i) => (
+            <div key={post.id} id={`post-${post.id}`} className="flex flex-col border-b border-border/40 pb-6 mb-2">
+              {/* Post Header */}
+              <div className="flex items-center justify-between px-2 py-3">
+                <div className="flex items-center gap-3">
+                  <Avatar className="h-8 w-8 border border-border/50 ring-2 ring-transparent group-hover:ring-primary/20 transition-all">
+                    <AvatarFallback className="bg-gradient-to-br from-primary/80 to-primary text-primary-foreground text-xs font-medium">
+                      {post.userName.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-col">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-foreground tracking-tight leading-none">
+                        {post.userName}
+                      </span>
+                      <span className="text-xs text-muted-foreground">• {formatDistanceToNow(new Date(post.date))}</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1">
+                  {user?.id === post.userId && (
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => deletePost(post.id)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              {/* Edge-to-edge Media */}
+              {post.imageUrls && post.imageUrls.length > 0 && (
+                <div className="w-full bg-black/5 relative group/media flex justify-center border border-border/30 sm:rounded-md overflow-hidden">
+                  {post.imageUrls.length === 1 ? (
+                    <img src={post.imageUrls[0]} alt={post.title} className="w-full max-h-[585px] object-contain transition-transform duration-700" loading="lazy" />
+                  ) : (
+                    <Carousel className="w-full">
+                      <CarouselContent>
+                        {post.imageUrls.map((url, idx) => (
+                          <CarouselItem key={idx}>
+                            <div className="w-full max-h-[585px] flex items-center justify-center bg-transparent">
+                              <img src={url} alt={`${post.title} - ${idx + 1}`} className="w-full max-h-[585px] object-contain" loading="lazy" />
+                            </div>
+                          </CarouselItem>
+                        ))}
+                      </CarouselContent>
+                      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 opacity-0 group-hover/media:opacity-100 transition-opacity">
+                        {post.imageUrls.map((_, dotIdx) => (
+                          <div key={dotIdx} className="w-1.5 h-1.5 rounded-full bg-white/80 shadow-sm" />
+                        ))}
+                      </div>
+                      <CarouselPrevious className="absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full border-none bg-white/50 hover:bg-white/90 opacity-0 group-hover/media:opacity-100 transition-opacity text-black" />
+                      <CarouselNext className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full border-none bg-white/50 hover:bg-white/90 opacity-0 group-hover/media:opacity-100 transition-opacity text-black" />
+                    </Carousel>
+                  )}
+                </div>
+              )}
+
+              {/* Action Bar */}
+              <div className="flex items-center justify-between px-2 py-2 mt-1">
+                <div className="flex items-center gap-4">
+                  <button 
+                    onClick={() => user && likePost(post.id, user.id)} 
+                    className={`transition-all ${post.likes.includes(user?.id || "") ? "text-rose-500 hover:text-rose-600" : "text-foreground hover:text-muted-foreground"}`}
+                  >
+                    <Heart className={`h-6 w-6 transition-transform ${post.likes.includes(user?.id || "") ? "fill-current" : ""}`} />
+                  </button>
+                  
+                  <button 
+                    onClick={() => setExpandedComments(prev => ({ ...prev, [post.id]: !prev[post.id] }))}
+                    className="text-foreground hover:text-muted-foreground transition-colors"
+                  >
+                    <MessageCircle className="h-6 w-6" />
+                  </button>
+
+                  <button className="text-foreground hover:text-muted-foreground transition-colors" onClick={() => handleShare(post)}>
+                    <Share2 className="h-6 w-6" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Likes count */}
+              <div className="px-2 pt-1 mb-1">
+                <p className="text-sm font-semibold">{post.likes.length} likes</p>
+              </div>
+
+              {/* Caption */}
+              <div className="px-2 space-y-1">
+                <div>
+                  <span className="text-sm font-semibold mr-2">{post.userName}</span>
+                  <span className="text-sm font-medium">{post.title}</span>
+                </div>
+                {post.content && (
+                  <p className="text-sm text-foreground/90 whitespace-pre-wrap">{post.content}</p>
+                )}
+                {post.category && (
+                  <Badge variant="secondary" className="bg-secondary/20 text-secondary-foreground hover:bg-secondary/40 px-1.5 py-0 mt-1 rounded text-[10px] uppercase font-medium">#{post.category}</Badge>
+                )}
+              </div>
+
+              {/* Comments Section */}
+              <div className="px-2 mt-2">
+                {post.comments.length > 0 && !expandedComments[post.id] && (
+                  <button 
+                    onClick={() => setExpandedComments(prev => ({ ...prev, [post.id]: true }))}
+                    className="text-sm text-muted-foreground hover:text-foreground mb-2"
+                  >
+                    View all {post.comments.length} comments
+                  </button>
+                )}
+
+                {expandedComments[post.id] && (
+                  <div className="space-y-3 mt-2 mb-3 bg-muted/10 p-3 rounded-xl border border-border/30">
+                    <div className="space-y-3 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar">
+                      {post.comments.length === 0 ? (
+                        <p className="text-center text-xs text-muted-foreground py-2">No comments yet. Start the conversation!</p>
+                      ) : (
+                        post.comments.map(c => (
+                          <div key={c.id} className="flex gap-2 group/comment">
+                            <span className="text-sm font-semibold whitespace-nowrap">
+                              {c.userName}
+                            </span>
+                            <span className="text-sm text-foreground/90 leading-snug">
+                              {c.content}
+                            </span>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Add Comment Input */}
+                <div className="flex items-center gap-2 mt-2 relative">
+                  <Input 
+                    placeholder="Add a comment..." 
+                    className="h-9 rounded-none border-none bg-transparent px-0 shadow-none focus-visible:ring-0 text-sm placeholder:text-muted-foreground"
+                    value={commentTexts[post.id] || ""} 
+                    onChange={e => setCommentTexts(prev => ({ ...prev, [post.id]: e.target.value }))} 
+                    onKeyDown={e => e.key === "Enter" && handleComment(post.id)} 
+                  />
+                  {commentTexts[post.id]?.trim() && (
+                    <button 
+                      className="text-sm font-semibold text-primary hover:text-primary/80 absolute right-0"
+                      onClick={() => handleComment(post.id)}
+                    >
+                      Post
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 };
 export default Community;

@@ -106,12 +106,23 @@ const addComment = async (req, res) => {
 };
 
 const uploadPostImage = async (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ success: false, message: 'Image file is required' });
+  const normalizedFiles = Array.isArray(req.files)
+    ? req.files
+    : req.files && typeof req.files === 'object'
+      ? Object.values(req.files).flat().filter(Boolean)
+      : req.file
+        ? [req.file]
+        : [];
+
+  if (normalizedFiles.length === 0) {
+    return res.status(400).json({ success: false, message: 'Image files are required' });
   }
 
-  if (!String(req.file.mimetype || '').startsWith('image/')) {
-    return res.status(400).json({ success: false, message: 'Only image files are allowed' });
+  // Check if all files are images
+  for (const file of normalizedFiles) {
+    if (!String(file.mimetype || '').startsWith('image/')) {
+      return res.status(400).json({ success: false, message: 'Only image files are allowed' });
+    }
   }
 
   if (!isCloudinaryConfigured()) {
@@ -119,14 +130,17 @@ const uploadPostImage = async (req, res) => {
   }
 
   try {
-    const uploaded = await uploadBufferToCloudinary(req.file.buffer, 'fitverse/community');
+    const uploadPromises = normalizedFiles.map((file) => uploadBufferToCloudinary(file.buffer, 'fitverse/community'));
+    const uploadedArray = await Promise.all(uploadPromises);
+
+    const urls = uploadedArray.map((uploaded) => uploaded.secure_url);
 
     return res.status(201).json({
       success: true,
-      message: 'Image uploaded',
+      message: 'Images uploaded',
       data: {
-        url: uploaded.secure_url,
-        publicId: uploaded.public_id,
+        url: urls[0] || '',
+        urls,
       },
     });
   } catch (error) {
