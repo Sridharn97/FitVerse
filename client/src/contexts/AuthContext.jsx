@@ -1,5 +1,16 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { apiRequest } from "@/lib/api";
+
+const AUTH_SYNC_KEY = "fitverse_auth_sync";
+
+function broadcastAuthEvent(type) {
+    if (typeof window === "undefined")
+        return;
+
+    const payload = JSON.stringify({ type, at: Date.now() });
+    window.localStorage.setItem(AUTH_SYNC_KEY, payload);
+}
+
 const AuthContext = createContext({
     user: null,
     authLoading: true,
@@ -15,6 +26,40 @@ export const AuthProvider = ({ children }) => {
     const [authLoading, setAuthLoading] = useState(true);
     const authSeq = useRef(0);
 
+    const hydrateUser = useCallback(async ({ setLoading = false } = {}) => {
+        const seq = ++authSeq.current;
+        if (setLoading)
+            setAuthLoading(true);
+
+        try {
+            const res = await apiRequest("/auth/me", { timeoutMs: 10000 });
+            if (authSeq.current !== seq)
+                return;
+
+            setUser({
+                id: res.data._id,
+                name: res.data.name,
+                email: res.data.email,
+                age: res.data.age,
+                height: res.data.height,
+                weight: res.data.weight,
+                goal: res.data.goal,
+                avatarUrl: res.data.avatarUrl,
+                isAnonymous: res.data.isAnonymous ?? false,
+            });
+        }
+        catch (_error) {
+            if (authSeq.current !== seq)
+                return;
+            setUser(null);
+        }
+        finally {
+            if (authSeq.current !== seq)
+                return;
+            setAuthLoading(false);
+        }
+    }, []);
+
     useEffect(() => {
         localStorage.removeItem("fitforge_user");
         localStorage.removeItem("fitforge_token");
@@ -24,38 +69,42 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem("fitforge_goal");
         localStorage.removeItem("fitforge_posts");
 
-        const bootstrap = async () => {
-            const seq = ++authSeq.current;
+        hydrateUser();
+    }, [hydrateUser]);
+
+    useEffect(() => {
+        if (typeof window === "undefined")
+            return;
+
+        const onStorage = (event) => {
+            if (event.key !== AUTH_SYNC_KEY || !event.newValue)
+                return;
+
+            let parsed;
             try {
-                const res = await apiRequest("/auth/me", { timeoutMs: 10000 });
-                if (authSeq.current !== seq)
-                    return;
-                setUser({
-                    id: res.data._id,
-                    name: res.data.name,
-                    email: res.data.email,
-                    age: res.data.age,
-                    height: res.data.height,
-                    weight: res.data.weight,
-                    goal: res.data.goal,
-                    avatarUrl: res.data.avatarUrl,
-                    isAnonymous: res.data.isAnonymous ?? false,
-                });
+                parsed = JSON.parse(event.newValue);
             }
             catch (_error) {
-                if (authSeq.current !== seq)
-                    return;
-                setUser(null);
+                return;
             }
-            finally {
-                if (authSeq.current !== seq)
-                    return;
+
+            if (parsed?.type === "logout") {
+                ++authSeq.current;
                 setAuthLoading(false);
+                setUser(null);
+                return;
+            }
+
+            if (parsed?.type === "login") {
+                hydrateUser();
             }
         };
 
-        bootstrap();
-    }, []);
+        window.addEventListener("storage", onStorage);
+        return () => {
+            window.removeEventListener("storage", onStorage);
+        };
+    }, [hydrateUser]);
 
     const login = useCallback(async (email, password) => {
         const seq = ++authSeq.current;
@@ -81,6 +130,7 @@ export const AuthProvider = ({ children }) => {
                 return false;
             setUser(nextUser);
             setAuthLoading(false);
+            broadcastAuthEvent("login");
             return true;
         }
         catch (_error) {
@@ -112,6 +162,7 @@ export const AuthProvider = ({ children }) => {
                 return false;
             setUser(nextUser);
             setAuthLoading(false);
+            broadcastAuthEvent("login");
             return true;
         }
         catch (_error) {
@@ -127,6 +178,7 @@ export const AuthProvider = ({ children }) => {
         catch (_error) {
         }
         setUser(null);
+        broadcastAuthEvent("logout");
     }, []);
 
     const updateProfile = useCallback(async (data) => {
