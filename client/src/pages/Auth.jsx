@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, Navigate } from "react-router-dom";
+import { useNavigate, Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,7 @@ import authBg from "@/assets/auth-fitness.jpg";
 const Auth = () => {
     const { user, login, signup } = useAuth();
     const navigate = useNavigate();
+  const location = useLocation();
     const { toast } = useToast();
     const [loginEmail, setLoginEmail] = useState("");
     const [loginPassword, setLoginPassword] = useState("");
@@ -23,8 +24,16 @@ const Auth = () => {
     useEffect(() => {
         warmupApi({ timeoutMs: 8000 });
     }, []);
+
+    const redirectFromState = location.state?.from;
+    const redirectFromQuery = new URLSearchParams(location.search).get("redirect");
+    const isSafeRedirect = (value) => typeof value === "string" && value.startsWith("/") && !value.startsWith("//");
+    const redirectTarget = isSafeRedirect(redirectFromState)
+      ? redirectFromState
+      : (isSafeRedirect(redirectFromQuery) ? redirectFromQuery : "/dashboard");
+
     if (user)
-        return <Navigate to="/dashboard" replace/>;
+      return <Navigate to={redirectTarget} replace/>;
     const handleLogin = async (e) => {
         e.preventDefault();
         if (submitting)
@@ -32,7 +41,7 @@ const Auth = () => {
         setSubmitting(true);
         try {
             if (await login(loginEmail, loginPassword)) {
-                navigate("/dashboard");
+            navigate(redirectTarget, { replace: true });
             }
             else {
                 toast({ title: "Login failed", description: "Invalid email or password", variant: "destructive" });
@@ -50,7 +59,7 @@ const Auth = () => {
         try {
             if (await signup(signupName, signupEmail, signupPassword)) {
                 toast({ title: "Welcome to FitVerse!", description: "Account created successfully" });
-                navigate("/dashboard");
+            navigate(redirectTarget, { replace: true });
             }
             else {
                 toast({ title: "Signup failed", description: "Email already exists", variant: "destructive" });

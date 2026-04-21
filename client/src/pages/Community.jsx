@@ -1,4 +1,5 @@
-import { useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFitness } from "@/contexts/FitnessContext";
 import { apiRequest } from "@/lib/api";
@@ -23,6 +24,7 @@ const Community = () => {
   const { user } = useAuth();
   const { posts, addPost, likePost, addComment, deletePost } = useFitness();
   const { toast } = useToast();
+  const location = useLocation();
   
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
@@ -39,6 +41,38 @@ const Community = () => {
   const [isPosting, setIsPosting] = useState(false);
   
   const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    const postHash = location.hash;
+    if (!postHash || !postHash.startsWith("#post-")) {
+      return;
+    }
+
+    let attempts = 0;
+    const maxAttempts = 10;
+    const timer = window.setInterval(() => {
+      const target = document.getElementById(postHash.slice(1));
+      attempts += 1;
+
+      if (target) {
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+        target.classList.add("ring-2", "ring-primary/40", "rounded-md");
+        window.setTimeout(() => {
+          target.classList.remove("ring-2", "ring-primary/40", "rounded-md");
+        }, 1800);
+        window.clearInterval(timer);
+        return;
+      }
+
+      if (attempts >= maxAttempts) {
+        window.clearInterval(timer);
+      }
+    }, 250);
+
+    return () => {
+      window.clearInterval(timer);
+    };
+  }, [location.hash, posts]);
 
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files || []);

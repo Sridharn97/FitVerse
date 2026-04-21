@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { Outlet, Navigate } from "react-router-dom";
+import { Outlet, Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import Navbar from "./Navbar";
 import Sidebar from "./Sidebar";
 const AppLayout = () => {
   const { user, authLoading } = useAuth();
+  const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     if (typeof window === "undefined")
@@ -33,7 +34,13 @@ const AppLayout = () => {
   if (authLoading)
     return null;
   if (!user)
-    return <Navigate to="/auth" replace />;
+    return (
+      <Navigate
+        to={`/auth?redirect=${encodeURIComponent(`${location.pathname}${location.search}${location.hash}`)}`}
+        state={{ from: `${location.pathname}${location.search}${location.hash}` }}
+        replace
+      />
+    );
   return (<div className="min-h-screen bg-background">
     <Navbar onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} onToggleCollapse={() => setSidebarCollapsed((current) => !current)} collapsed={sidebarCollapsed} />
     {!sidebarOpen && (<button aria-label="Open sidebar" className="fixed left-0 top-16 z-30 h-[calc(100vh-4rem)] w-5 bg-transparent lg:hidden" onTouchStart={() => setSidebarOpen(true)} onClick={() => setSidebarOpen(true)} />)}
