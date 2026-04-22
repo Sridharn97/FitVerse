@@ -42,7 +42,7 @@ const AppLayout = () => {
       />
     );
   return (<div className="min-h-screen bg-background">
-    <Navbar onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} onToggleCollapse={() => setSidebarCollapsed((current) => !current)} collapsed={sidebarCollapsed} />
+    <Navbar onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
     {!sidebarOpen && (<button aria-label="Open sidebar" className="fixed left-0 top-16 z-30 h-[calc(100vh-4rem)] w-5 bg-transparent lg:hidden" onTouchStart={() => setSidebarOpen(true)} onClick={() => setSidebarOpen(true)} />)}
     <div className="flex">
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} collapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed((current) => !current)} onOptionSelect={handleSidebarOptionSelect} />

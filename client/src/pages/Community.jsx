@@ -189,9 +189,9 @@ const Community = () => {
         <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-primary/10 rounded-full blur-3xl opacity-50 pointer-events-none" />
         
         <div className="relative z-10">
-          <Badge className="mb-2 bg-primary/20 text-primary hover:bg-primary/30 border-none transition-colors">Community Hub</Badge>
+         
           <h1 className="text-3xl font-extrabold tracking-tight text-foreground md:text-4xl">
-            Discussion <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-emerald-400">Board</span>
+            Fitverse <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-emerald-400">Community</span>
           </h1>
         </div>
         
@@ -422,28 +422,47 @@ const Community = () => {
               {/* Comments Section */}
               <div className="px-2 mt-2">
                 {post.comments.length > 0 && !expandedComments[post.id] && (
-                  <button 
+                  <button
                     onClick={() => setExpandedComments(prev => ({ ...prev, [post.id]: true }))}
-                    className="text-sm text-muted-foreground hover:text-foreground mb-2"
+                    className="mb-2 inline-flex items-center gap-2 rounded-full bg-muted/40 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground"
                   >
+                    <MessageCircle className="h-3.5 w-3.5" />
                     View all {post.comments.length} comments
                   </button>
                 )}
 
                 {expandedComments[post.id] && (
-                  <div className="space-y-3 mt-2 mb-3 bg-muted/10 p-3 rounded-xl border border-border/30">
-                    <div className="space-y-3 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar">
+                  <div className="mb-3 mt-2 rounded-2xl border border-border/40 bg-card/60 p-3 shadow-sm backdrop-blur-sm">
+                    <div className="mb-3 flex items-center justify-between border-b border-border/40 pb-2">
+                      <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+                        Conversation
+                      </p>
+                      <button
+                        onClick={() => setExpandedComments(prev => ({ ...prev, [post.id]: false }))}
+                        className="text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+                      >
+                        Hide
+                      </button>
+                    </div>
+
+                    <div className="max-h-[260px] space-y-2.5 overflow-y-auto pr-1 custom-scrollbar">
                       {post.comments.length === 0 ? (
-                        <p className="text-center text-xs text-muted-foreground py-2">No comments yet. Start the conversation!</p>
+                        <p className="rounded-xl border border-dashed border-border/50 bg-muted/20 px-3 py-5 text-center text-xs text-muted-foreground">
+                          No comments yet. Start the conversation!
+                        </p>
                       ) : (
                         post.comments.map(c => (
-                          <div key={c.id} className="flex gap-2 group/comment">
-                            <span className="text-sm font-semibold whitespace-nowrap">
-                              {c.userName}
-                            </span>
-                            <span className="text-sm text-foreground/90 leading-snug">
-                              {c.content}
-                            </span>
+                          <div key={c.id} className="group/comment flex items-start gap-2.5">
+                            <Avatar className="mt-0.5 h-7 w-7 border border-border/40">
+                              <AvatarFallback className="bg-primary/10 text-[10px] font-semibold text-primary">
+                                {c.userName?.charAt(0)?.toUpperCase() || "U"}
+                              </AvatarFallback>
+                            </Avatar>
+
+                            <div className="flex-1 rounded-2xl rounded-tl-md bg-muted/45 px-3 py-2.5 transition-colors group-hover/comment:bg-muted/60">
+                              <p className="text-xs font-semibold text-foreground/85">{c.userName}</p>
+                              <p className="mt-0.5 text-sm leading-snug text-foreground/95">{c.content}</p>
+                            </div>
                           </div>
                         ))
                       )}
@@ -452,22 +471,30 @@ const Community = () => {
                 )}
                 
                 {/* Add Comment Input */}
-                <div className="flex items-center gap-2 mt-2 relative">
-                  <Input 
-                    placeholder="Add a comment..." 
-                    className="h-9 rounded-none border-none bg-transparent px-0 shadow-none focus-visible:ring-0 text-sm placeholder:text-muted-foreground"
-                    value={commentTexts[post.id] || ""} 
-                    onChange={e => setCommentTexts(prev => ({ ...prev, [post.id]: e.target.value }))} 
-                    onKeyDown={e => e.key === "Enter" && handleComment(post.id)} 
+                <div className="mt-2 flex items-center gap-2 rounded-full border border-border/50 bg-card px-2.5 py-1.5 shadow-sm">
+                  <Avatar className="h-7 w-7 border border-border/50">
+                    <AvatarFallback className="bg-primary/10 text-[10px] font-semibold text-primary">
+                      {user?.name?.charAt(0)?.toUpperCase() || "U"}
+                    </AvatarFallback>
+                  </Avatar>
+
+                  <Input
+                    placeholder="Share your thoughts..."
+                    className="h-9 border-none bg-transparent px-0 text-sm shadow-none focus-visible:ring-0 placeholder:text-muted-foreground/80"
+                    value={commentTexts[post.id] || ""}
+                    onChange={e => setCommentTexts(prev => ({ ...prev, [post.id]: e.target.value }))}
+                    onKeyDown={e => e.key === "Enter" && handleComment(post.id)}
                   />
-                  {commentTexts[post.id]?.trim() && (
-                    <button 
-                      className="text-sm font-semibold text-primary hover:text-primary/80 absolute right-0"
-                      onClick={() => handleComment(post.id)}
-                    >
-                      Post
-                    </button>
-                  )}
+
+                  <Button
+                    type="button"
+                    size="icon"
+                    className="h-8 w-8 rounded-full"
+                    disabled={!commentTexts[post.id]?.trim()}
+                    onClick={() => handleComment(post.id)}
+                  >
+                    <Send className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
             </div>
