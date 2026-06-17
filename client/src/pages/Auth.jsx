@@ -71,38 +71,44 @@ const Auth = () => {
     };
     return (<div className="flex min-h-screen bg-background">
       {/* Left - Image Panel */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
-        <img src={authBg} alt="Fitness gym with green neon lighting" className="absolute inset-0 h-full w-full object-cover"/>
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent"/>
-        <div className="relative z-10 flex flex-col justify-end p-12 pb-16">
-          <div className="space-y-6">
-            <div className="flex items-center gap-3">
-              <img src="/Logo.png" alt="FitVerse logo" className="h-12 w-12 rounded-full object-cover border border-primary/30"/>
-              <h2 className="text-3xl font-bold text-foreground">
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-black">
+        <img src={authBg} alt="Fitness gym with green neon lighting" className="absolute inset-0 h-full w-full object-cover opacity-80"/>
+        
+        {/* Strong, seamless dark gradients instead of localized blur boxes */}
+        <div className="absolute inset-0 bg-gradient-to-r from-black/95 via-black/70 to-transparent"/>
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent"/>
+        
+        <div className="relative z-10 flex flex-col justify-end p-12 pb-20 w-full">
+          <div className="space-y-8 max-w-lg">
+            <div className="flex items-center gap-4">
+              <img src="/Logo.png" alt="FitVerse logo" className="h-14 w-14 rounded-full object-cover ring-2 ring-primary/40 shadow-[0_0_30px_rgba(0,204,180,0.5)]"/>
+              <h2 className="text-5xl font-extrabold text-white tracking-tight drop-shadow-lg">
                 Fit<span className="text-primary">Verse</span>
               </h2>
             </div>
-            <p className="text-lg text-muted-foreground max-w-md">
+            
+            <p className="text-xl text-gray-200 font-medium leading-relaxed drop-shadow-md">
               Transform your fitness journey with smart workout planning, progress tracking, and a supportive community.
             </p>
-            <div className="flex flex-col gap-3 pt-2">
-              <div className="flex items-center gap-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/15 backdrop-blur-sm">
-                  <Flame className="h-4 w-4 text-primary"/>
+            
+            <div className="flex flex-col gap-6 pt-6">
+              <div className="flex items-center gap-5 group">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 border border-primary/20 group-hover:bg-primary/20 group-hover:scale-105 transition-all duration-300 shadow-inner">
+                  <Flame className="h-6 w-6 text-primary"/>
                 </div>
-                <span className="text-sm text-muted-foreground">Track calories & macros effortlessly</span>
+                <span className="text-lg font-semibold text-gray-300 group-hover:text-white transition-colors drop-shadow-sm">Track calories & macros effortlessly</span>
               </div>
-              <div className="flex items-center gap-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/15 backdrop-blur-sm">
-                  <Target className="h-4 w-4 text-primary"/>
+              <div className="flex items-center gap-5 group">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 border border-primary/20 group-hover:bg-primary/20 group-hover:scale-105 transition-all duration-300 shadow-inner">
+                  <Target className="h-6 w-6 text-primary"/>
                 </div>
-                <span className="text-sm text-muted-foreground">Set goals and crush them every day</span>
+                <span className="text-lg font-semibold text-gray-300 group-hover:text-white transition-colors drop-shadow-sm">Set goals and crush them every day</span>
               </div>
-              <div className="flex items-center gap-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/15 backdrop-blur-sm">
-                  <TrendingUp className="h-4 w-4 text-primary"/>
+              <div className="flex items-center gap-5 group">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 border border-primary/20 group-hover:bg-primary/20 group-hover:scale-105 transition-all duration-300 shadow-inner">
+                  <TrendingUp className="h-6 w-6 text-primary"/>
                 </div>
-                <span className="text-sm text-muted-foreground">Visualize your progress with charts</span>
+                <span className="text-lg font-semibold text-gray-300 group-hover:text-white transition-colors drop-shadow-sm">Visualize your progress with charts</span>
               </div>
             </div>
           </div>
@@ -135,58 +141,60 @@ const Auth = () => {
               <TabsTrigger value="signup" className="text-sm font-semibold">Sign Up</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="login" className="mt-0 space-y-6">
-              <form onSubmit={handleLogin} className="space-y-5">
-                <div className="space-y-2">
-                  <Label htmlFor="login-email" className="text-sm font-medium">Email address</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
-                    <Input id="login-email" type="email" placeholder="you@example.com" className="pl-11 h-12 bg-card border-border/50 focus:border-primary" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} required disabled={submitting}/>
+            <div className="min-h-[350px]">
+              <TabsContent value="login" className="mt-0 space-y-6">
+                <form onSubmit={handleLogin} className="space-y-5">
+                  <div className="space-y-2">
+                    <Label htmlFor="login-email" className="text-sm font-medium">Email address</Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
+                      <Input id="login-email" type="email" placeholder="you@example.com" className="pl-11 h-12 bg-card border-border/50 focus:border-primary" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} required disabled={submitting}/>
+                    </div>
                   </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="login-password" className="text-sm font-medium">Password</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
-                    <Input id="login-password" type="password" placeholder="••••••••" className="pl-11 h-12 bg-card border-border/50 focus:border-primary" value={loginPassword} onChange={e => setLoginPassword(e.target.value)} required/>
+                  <div className="space-y-2">
+                    <Label htmlFor="login-password" className="text-sm font-medium">Password</Label>
+                    <div className="relative">
+                      <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
+                      <Input id="login-password" type="password" placeholder="••••••••" className="pl-11 h-12 bg-card border-border/50 focus:border-primary" value={loginPassword} onChange={e => setLoginPassword(e.target.value)} required/>
+                    </div>
                   </div>
-                </div>
-                <Button type="submit" className="w-full h-12 text-base font-semibold group" disabled={submitting}>
-                  {submitting ? "Signing In..." : "Sign In"}
-                  <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1"/>
-                </Button>
-              </form>
-            </TabsContent>
+                  <Button type="submit" className="w-full h-12 text-base font-semibold group" disabled={submitting}>
+                    {submitting ? "Signing In..." : "Sign In"}
+                    <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1"/>
+                  </Button>
+                </form>
+              </TabsContent>
 
-            <TabsContent value="signup" className="mt-0 space-y-6">
-              <form onSubmit={handleSignup} className="space-y-5">
-                <div className="space-y-2">
-                  <Label htmlFor="signup-name" className="text-sm font-medium">Full Name</Label>
-                  <div className="relative">
-                    <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
-                    <Input id="signup-name" placeholder="John Doe" className="pl-11 h-12 bg-card border-border/50 focus:border-primary" value={signupName} onChange={e => setSignupName(e.target.value)} required disabled={submitting}/>
+              <TabsContent value="signup" className="mt-0 space-y-6">
+                <form onSubmit={handleSignup} className="space-y-5">
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-name" className="text-sm font-medium">Full Name</Label>
+                    <div className="relative">
+                      <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
+                      <Input id="signup-name" placeholder="John Doe" className="pl-11 h-12 bg-card border-border/50 focus:border-primary" value={signupName} onChange={e => setSignupName(e.target.value)} required disabled={submitting}/>
+                    </div>
                   </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-email" className="text-sm font-medium">Email address</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
-                    <Input id="signup-email" type="email" placeholder="you@example.com" className="pl-11 h-12 bg-card border-border/50 focus:border-primary" value={signupEmail} onChange={e => setSignupEmail(e.target.value)} required disabled={submitting}/>
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-email" className="text-sm font-medium">Email address</Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
+                      <Input id="signup-email" type="email" placeholder="you@example.com" className="pl-11 h-12 bg-card border-border/50 focus:border-primary" value={signupEmail} onChange={e => setSignupEmail(e.target.value)} required disabled={submitting}/>
+                    </div>
                   </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-password" className="text-sm font-medium">Password</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
-                    <Input id="signup-password" type="password" placeholder="••••••••" className="pl-11 h-12 bg-card border-border/50 focus:border-primary" value={signupPassword} onChange={e => setSignupPassword(e.target.value)} required/>
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-password" className="text-sm font-medium">Password</Label>
+                    <div className="relative">
+                      <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
+                      <Input id="signup-password" type="password" placeholder="••••••••" className="pl-11 h-12 bg-card border-border/50 focus:border-primary" value={signupPassword} onChange={e => setSignupPassword(e.target.value)} required/>
+                    </div>
                   </div>
-                </div>
-                <Button type="submit" className="w-full h-12 text-base font-semibold group" disabled={submitting}>
-                  {submitting ? "Creating..." : "Create Account"}
-                  <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1"/>
-                </Button>
-              </form>
-            </TabsContent>
+                  <Button type="submit" className="w-full h-12 text-base font-semibold group" disabled={submitting}>
+                    {submitting ? "Creating..." : "Create Account"}
+                    <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1"/>
+                  </Button>
+                </form>
+              </TabsContent>
+            </div>
           </Tabs>
 
           <p className="text-center text-xs text-muted-foreground">
