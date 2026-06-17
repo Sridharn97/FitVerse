@@ -28,12 +28,25 @@ const Index = () => {
             </span>
           </div>
           <div className="flex items-center gap-4">
-            <Button variant="ghost" className="hidden sm:inline-flex" onClick={() => navigate(user ? "/dashboard" : "/auth")}>
-               {user ? "Dashboard" : "Log in"}
-            </Button>
-            <Button onClick={() => navigate(user ? "/dashboard" : "/auth")}>
-               {user ? "Dashboard" : "Get Started"}
-            </Button>
+            {!user ? (
+              <>
+                <Button variant="ghost" className="hidden sm:inline-flex" onClick={() => navigate("/auth")}>
+                   Log in
+                </Button>
+                <Button onClick={() => navigate("/auth")}>
+                   Get Started
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button variant="ghost" className="hidden sm:inline-flex" onClick={() => navigate("/profile")}>
+                   Profile
+                </Button>
+                <Button onClick={() => navigate("/dashboard")}>
+                   Dashboard
+                </Button>
+              </>
+            )}
           </div>
         </nav>
 
