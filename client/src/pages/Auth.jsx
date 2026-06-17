@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dumbbell, Mail, Lock, User, ArrowRight, Flame, Target, TrendingUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { warmupApi } from "@/lib/api";
-import authBg from "@/assets/auth-fitness.jpg";
+import authBg from "@/assets/auth_background.png";
 const Auth = () => {
     const { user, login, signup } = useAuth();
     const navigate = useNavigate();
@@ -110,8 +110,11 @@ const Auth = () => {
       </div>
 
       {/* Right - Form Panel */}
-      <div className="flex w-full lg:w-1/2 items-center justify-center p-6 sm:p-12">
-        <div className="w-full max-w-md space-y-8">
+      <div className="flex w-full lg:w-1/2 items-center justify-center p-6 sm:p-12 relative overflow-hidden bg-background">
+        {/* Subtle decorative blob */}
+        <div className="absolute top-1/4 right-0 w-96 h-96 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-1/4 left-0 w-72 h-72 bg-accent/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="w-full max-w-md space-y-8 bg-card/60 backdrop-blur-xl p-8 sm:p-10 rounded-[2rem] border border-border/50 shadow-2xl relative z-10">
           {/* Mobile logo */}
           <div className="flex flex-col items-center gap-3 lg:hidden">
             <img src="/Logo.png" alt="FitVerse logo" className="h-14 w-14 rounded-full object-cover"/>
