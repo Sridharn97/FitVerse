@@ -131,6 +131,46 @@ All colors MUST be HSL.
     --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.6), 0 8px 10px -1px hsl(0 0% 0% / 0.6);
     --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.8);
   }
+
+  /* Color Themes */
+  [data-theme="green"] {
+    --primary: 142 70% 40%;
+    --ring: 142 70% 40%;
+    --sidebar-primary: 142 70% 40%;
+    --sidebar-ring: 142 70% 40%;
+  }
+  .dark[data-theme="green"], [data-theme="green"].dark {
+    --primary: 142 70% 50%;
+    --ring: 142 70% 50%;
+    --sidebar-primary: 142 70% 50%;
+    --sidebar-ring: 142 70% 50%;
+  }
+
+  [data-theme="blue"] {
+    --primary: 221 83% 53%;
+    --ring: 221 83% 53%;
+    --sidebar-primary: 221 83% 53%;
+    --sidebar-ring: 221 83% 53%;
+  }
+  .dark[data-theme="blue"], [data-theme="blue"].dark {
+    --primary: 217 91% 60%;
+    --ring: 217 91% 60%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-ring: 217 91% 60%;
+  }
+
+  [data-theme="purple"] {
+    --primary: 262 83% 58%;
+    --ring: 262 83% 58%;
+    --sidebar-primary: 262 83% 58%;
+    --sidebar-ring: 262 83% 58%;
+  }
+  .dark[data-theme="purple"], [data-theme="purple"].dark {
+    --primary: 250 89% 65%;
+    --ring: 250 89% 65%;
+    --sidebar-primary: 250 89% 65%;
+    --sidebar-ring: 250 89% 65%;
+  }
 }
 
 @layer base {

@@ -79,12 +79,13 @@ const Index = () => {
               </div>
 
               <div className="mt-16 lg:mt-0 lg:col-span-6 relative perspective-1000">
-                <div className="absolute inset-0 bg-gradient-to-tr from-primary/30 to-accent/30 rounded-[2.5rem] blur-3xl opacity-50 transform rotate-6" />
-                <div className="relative rounded-[2.5rem] overflow-hidden border border-white/10 shadow-2xl bg-card/50 backdrop-blur-sm transform transition-transform hover:scale-[1.02] duration-500">
+                {/* Glow behind the card - reduced in light mode */}
+                <div className="absolute inset-0 bg-gradient-to-tr from-primary/30 to-accent/30 rounded-[2.5rem] blur-3xl opacity-20 dark:opacity-50 transform rotate-6" />
+                <div className="relative rounded-[2.5rem] overflow-hidden border border-border/50 dark:border-white/10 shadow-xl dark:shadow-2xl bg-card/95 dark:bg-card/50 backdrop-blur-none dark:backdrop-blur-sm transform transition-transform hover:scale-[1.02] duration-500">
                   <img src={landingHero} alt="Dynamic workout in premium gym" className="w-full h-auto object-cover opacity-90 hover:opacity-100 transition-opacity" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/40 to-transparent dark:from-background/80 dark:to-transparent" />
                   <div className="absolute bottom-6 left-6 right-6">
-                    <div className="bg-background/40 backdrop-blur-md border border-white/10 rounded-2xl p-4 flex items-center justify-between">
+                    <div className="bg-background/90 dark:bg-background/40 backdrop-blur-none dark:backdrop-blur-md border border-border/50 dark:border-white/10 rounded-2xl p-4 flex items-center justify-between shadow-sm">
                       <div>
                         <p className="text-sm font-medium text-foreground/80">Current Workout</p>
                         <p className="text-lg font-bold text-foreground">HIIT Cardio Blast</p>

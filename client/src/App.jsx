@@ -23,6 +23,7 @@ const queryClient = new QueryClient();
 const App = () => {
   useEffect(() => {
     const theme = localStorage.getItem("fitverse_theme") || "system";
+    const colorTheme = localStorage.getItem("fitverse_color_theme") || "teal";
     const root = window.document.documentElement;
     root.classList.remove("light", "dark");
     if (theme === "system") {
@@ -30,6 +31,13 @@ const App = () => {
       root.classList.add(systemTheme);
     } else {
       root.classList.add(theme);
+    }
+    
+    // Apply color theme
+    if (colorTheme !== "teal") {
+        root.setAttribute("data-theme", colorTheme);
+    } else {
+        root.removeAttribute("data-theme");
     }
   }, []);
 

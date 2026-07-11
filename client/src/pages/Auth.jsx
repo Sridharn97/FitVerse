@@ -117,10 +117,12 @@ const Auth = () => {
 
       {/* Right - Form Panel */}
       <div className="flex w-full lg:w-1/2 items-center justify-center p-6 sm:p-12 relative overflow-hidden bg-background">
-        {/* Subtle decorative blob */}
-        <div className="absolute top-1/4 right-0 w-96 h-96 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-1/4 left-0 w-72 h-72 bg-accent/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="w-full max-w-md space-y-8 bg-card/60 backdrop-blur-xl p-8 sm:p-10 rounded-[2rem] border border-border/50 shadow-2xl relative z-10">
+        {/* Subtle decorative blob - reduced opacity in light mode to prevent 'fog' */}
+        <div className="absolute top-1/4 right-0 w-96 h-96 bg-primary/5 dark:bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-1/4 left-0 w-72 h-72 bg-primary/5 dark:bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+        
+        {/* Main Form Card - Solid and neat in light mode, sleek glass in dark mode */}
+        <div className="w-full max-w-md space-y-8 bg-card/95 dark:bg-card/60 backdrop-blur-none dark:backdrop-blur-xl p-8 sm:p-10 rounded-[2rem] border border-border/50 shadow-xl dark:shadow-2xl relative z-10">
           {/* Mobile logo */}
           <div className="flex flex-col items-center gap-3 lg:hidden">
             <img src="/Logo.png" alt="FitVerse logo" className="h-14 w-14 rounded-full object-cover"/>

@@ -20,8 +20,10 @@ const Preferences = () => {
     // Theme (Light, Dark, System)
     const [theme, setTheme] = useState(localStorage.getItem("fitverse_theme") || "system");
 
-    // Profile Visibility — always sourced from the actual user object, not localStorage
-    // This prevents a new account from inheriting a previous session's anonymous setting
+    // Color Theme (Teal, Green, Blue, Purple)
+    const [colorTheme, setColorTheme] = useState(localStorage.getItem("fitverse_color_theme") || "teal");
+
+    // Profile Visibility
     const [isAnonymous, setIsAnonymous] = useState(user?.isAnonymous ?? false);
 
     // Chart Customization
@@ -31,7 +33,6 @@ const Preferences = () => {
     });
     const [firstDayOfWeek, setFirstDayOfWeek] = useState(localStorage.getItem("fitverse_first_day") || "sun");
 
-    // Keep anonymous toggle in sync if the user object changes (e.g. after bootstrap)
     useEffect(() => {
         if (user) {
             setIsAnonymous(user.isAnonymous ?? false);
@@ -50,13 +51,22 @@ const Preferences = () => {
         }
     }, [theme]);
 
+    useEffect(() => {
+        localStorage.setItem("fitverse_color_theme", colorTheme);
+        const root = window.document.documentElement;
+        if (colorTheme !== "teal") {
+            root.setAttribute("data-theme", colorTheme);
+        } else {
+            root.removeAttribute("data-theme");
+        }
+    }, [colorTheme]);
+
     const handleAnonymousToggle = async (val) => {
         setIsAnonymous(val);
         try {
             await updateProfile({ isAnonymous: val });
             toast({ title: "Preference Saved", description: "Anonymous posting updated." });
         } catch (e) {
-            // Revert toggle on failure
             setIsAnonymous(!val);
             toast({ title: "Update failed", description: "Could not save preference.", variant: "destructive" });
         }
@@ -108,20 +118,35 @@ const Preferences = () => {
                 <div className="divide-y divide-border/50">
 
                     {/* Appearance */}
-                    <div className="p-6 sm:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6 hover:bg-muted/10 transition-colors">
-                        <div className="space-y-1">
+                    <div className="p-6 sm:p-8 flex flex-col md:flex-row gap-6 hover:bg-muted/10 transition-colors">
+                        <div className="space-y-1 md:w-1/3">
                             <h3 className="flex items-center gap-2 font-medium leading-none text-foreground"><Monitor className="h-4 w-4 text-muted-foreground" /> Appearance</h3>
                             <p className="text-sm text-muted-foreground pt-1">Adjust how FitVerse looks on your device.</p>
                         </div>
-                        <div className="flex md:w-[220px]">
-                            <Select value={theme} onValueChange={setTheme}>
-                                <SelectTrigger className="w-full bg-background"><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="system">System Settings</SelectItem>
-                                    <SelectItem value="light">Light Mode</SelectItem>
-                                    <SelectItem value="dark">Dark Mode</SelectItem>
-                                </SelectContent>
-                            </Select>
+                        <div className="flex flex-col gap-6 md:w-2/3">
+                            <div className="space-y-3">
+                                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Mode</Label>
+                                <Select value={theme} onValueChange={setTheme}>
+                                    <SelectTrigger className="w-full sm:w-[220px] bg-background"><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="system">System Settings</SelectItem>
+                                        <SelectItem value="light">Light Mode</SelectItem>
+                                        <SelectItem value="dark">Dark Mode</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-3">
+                                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Color Theme</Label>
+                                <Select value={colorTheme} onValueChange={setColorTheme}>
+                                    <SelectTrigger className="w-full sm:w-[220px] bg-background"><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="teal">Neon Teal (Default)</SelectItem>
+                                        <SelectItem value="green">Forest Green</SelectItem>
+                                        <SelectItem value="blue">Ocean Blue</SelectItem>
+                                        <SelectItem value="purple">Deep Purple</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
                         </div>
                     </div>
 
