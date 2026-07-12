@@ -10,7 +10,9 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { Plus, TrendingUp, Scale, Ruler, Activity } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { format, isWithinInterval } from "date-fns";
+import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { format, isWithinInterval, subDays, startOfDay } from "date-fns";
 import { DateFilter } from "@/components/shared/DateFilter";
 import { getDateRange } from "@/lib/date-utils";
 function getBmiCategory(bmi) {
@@ -23,8 +25,8 @@ function getBmiCategory(bmi) {
     return { label: "Obese", color: "text-destructive" };
 }
 const ProgressPage = () => {
-    const { progress, addProgress } = useFitness();
-  const [dateFilter, setDateFilter] = useState("this-month");
+    const { progress, addProgress, workouts, meals, goal } = useFitness();
+    const [dateFilter, setDateFilter] = useState("this-month");
     const [open, setOpen] = useState(false);
     const [weight, setWeight] = useState("");
     const [height, setHeight] = useState("175");
@@ -66,6 +68,50 @@ const ProgressPage = () => {
     const liveBmi = liveWeight ? +(liveWeight / (liveHeight * liveHeight)).toFixed(1) : null;
     const bmiCategory = liveBmi ? getBmiCategory(liveBmi) : null;
     const bmiPercent = liveBmi ? Math.min((liveBmi / 40) * 100, 100) : 0;
+
+    const generateYearlyData = () => {
+        const data = [];
+        const today = startOfDay(new Date());
+        for (let i = 364; i >= 0; i--) {
+            const date = subDays(today, i);
+            const dateStr = format(date, "yyyy-MM-dd");
+            
+            const dayWorkouts = workouts.filter(w => w.date === dateStr);
+            const workoutDone = dayWorkouts.some(w => w.completed);
+            
+            const dayMeals = meals.filter(m => m.date === dateStr);
+            const dayCals = dayMeals.reduce((s, m) => s + m.calories, 0);
+            
+            let goalMet = false;
+            if (goal && goal.targetCalories > 0) {
+                if (goal.type === "weight_loss") {
+                    goalMet = dayCals > 0 && dayCals <= goal.targetCalories;
+                } else {
+                    goalMet = dayCals >= goal.targetCalories;
+                }
+            } else {
+                 goalMet = dayCals > 0;
+            }
+
+            let intensity = 0;
+            if (workoutDone && goalMet) intensity = 3;
+            else if (workoutDone || goalMet) intensity = 2;
+            else if (dayWorkouts.length > 0 || dayCals > 0) intensity = 1;
+
+            data.push({ date, dateStr, intensity, workoutDone, goalMet, dayCals });
+        }
+        return data;
+    };
+    
+    const yearlyData = generateYearlyData();
+    const getIntensityColor = (intensity) => {
+        switch(intensity) {
+            case 3: return "bg-primary shadow-[0_0_4px_rgba(var(--primary),0.6)]";
+            case 2: return "bg-primary/70";
+            case 1: return "bg-primary/30";
+            default: return "bg-muted/50 dark:bg-muted/20";
+        }
+    };
     return (<div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -117,6 +163,52 @@ const ProgressPage = () => {
           </Dialog>
         </div>
       </div>
+
+      {/* Consistency Graph Card */}
+      <Card className="border-primary/20">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Activity className="h-5 w-5 text-primary"/> Consistency (Last 365 Days)
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ScrollArea className="w-full pb-4">
+            {/* 7 rows * 16px (12px square + 4px gap) = 112px height */}
+            <TooltipProvider delayDuration={0}>
+              <div className="flex flex-col flex-wrap gap-1 content-start h-[108px]">
+                {yearlyData.map((day) => (
+                  <UITooltip key={day.dateStr}>
+                    <TooltipTrigger asChild>
+                      <div className={`w-3 h-3 rounded-[2px] transition-all duration-300 hover:ring-2 hover:ring-primary/50 ${getIntensityColor(day.intensity)}`} />
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="text-xs space-y-1 p-2">
+                      <p className="font-bold text-[13px] border-b pb-1 mb-1">{format(day.date, "MMM dd, yyyy")}</p>
+                      {day.intensity === 0 ? (
+                        <p className="text-muted-foreground">No activity logged.</p>
+                      ) : (
+                        <>
+                          {day.workoutDone && <p className="flex items-center gap-1 text-primary"><TrendingUp className="h-3 w-3"/> Workout completed</p>}
+                          {day.goalMet && <p className="flex items-center gap-1 text-primary"><Activity className="h-3 w-3"/> Goal met ({day.dayCals} kcal)</p>}
+                          {day.intensity === 1 && <p className="text-muted-foreground">Partial activity (missed goals)</p>}
+                        </>
+                      )}
+                    </TooltipContent>
+                  </UITooltip>
+                ))}
+              </div>
+            </TooltipProvider>
+            <ScrollBar orientation="horizontal" />
+          </ScrollArea>
+          <div className="flex items-center justify-end gap-2 mt-2 text-[10px] text-muted-foreground font-medium">
+            <span>Less</span>
+            <div className={`w-3 h-3 rounded-[2px] ${getIntensityColor(0)}`} />
+            <div className={`w-3 h-3 rounded-[2px] ${getIntensityColor(1)}`} />
+            <div className={`w-3 h-3 rounded-[2px] ${getIntensityColor(2)}`} />
+            <div className={`w-3 h-3 rounded-[2px] ${getIntensityColor(3)}`} />
+            <span>More</span>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* BMI Calculator Card */}
       <Card className="border-primary/20">
