@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { format, isWithinInterval, subDays, startOfDay } from "date-fns";
+import { format, isWithinInterval, subDays, startOfDay, getDaysInYear, startOfYear, addDays, isAfter } from "date-fns";
 import { DateFilter } from "@/components/shared/DateFilter";
 import { getDateRange } from "@/lib/date-utils";
 function getBmiCategory(bmi) {
@@ -27,6 +27,7 @@ function getBmiCategory(bmi) {
 const ProgressPage = () => {
     const { progress, addProgress, workouts, meals, goal } = useFitness();
     const [dateFilter, setDateFilter] = useState("this-month");
+    const [graphYear, setGraphYear] = useState("last-365");
     const [open, setOpen] = useState(false);
     const [weight, setWeight] = useState("");
     const [height, setHeight] = useState("175");
@@ -72,31 +73,47 @@ const ProgressPage = () => {
     const generateYearlyData = () => {
         const data = [];
         const today = startOfDay(new Date());
-        for (let i = 364; i >= 0; i--) {
-            const date = subDays(today, i);
+        
+        let startDate, totalDays;
+        if (graphYear === "last-365") {
+            startDate = subDays(today, 364);
+            totalDays = 365;
+        } else {
+            const yearNum = parseInt(graphYear);
+            startDate = startOfYear(new Date(yearNum, 0, 1));
+            totalDays = getDaysInYear(startDate);
+        }
+
+        for (let i = 0; i < totalDays; i++) {
+            const date = addDays(startDate, i);
             const dateStr = format(date, "yyyy-MM-dd");
             
-            const dayWorkouts = workouts.filter(w => w.date === dateStr);
-            const workoutDone = dayWorkouts.some(w => w.completed);
-            
-            const dayMeals = meals.filter(m => m.date === dateStr);
-            const dayCals = dayMeals.reduce((s, m) => s + m.calories, 0);
-            
-            let goalMet = false;
-            if (goal && goal.targetCalories > 0) {
-                if (goal.type === "weight_loss") {
-                    goalMet = dayCals > 0 && dayCals <= goal.targetCalories;
-                } else {
-                    goalMet = dayCals >= goal.targetCalories;
-                }
-            } else {
-                 goalMet = dayCals > 0;
-            }
-
             let intensity = 0;
-            if (workoutDone && goalMet) intensity = 3;
-            else if (workoutDone || goalMet) intensity = 2;
-            else if (dayWorkouts.length > 0 || dayCals > 0) intensity = 1;
+            let workoutDone = false;
+            let goalMet = false;
+            let dayCals = 0;
+
+            if (!isAfter(date, today) || graphYear === "last-365") {
+                const dayWorkouts = workouts.filter(w => w.date === dateStr);
+                workoutDone = dayWorkouts.some(w => w.completed);
+                
+                const dayMeals = meals.filter(m => m.date === dateStr);
+                dayCals = dayMeals.reduce((s, m) => s + m.calories, 0);
+                
+                if (goal && goal.targetCalories > 0) {
+                    if (goal.type === "weight_loss") {
+                        goalMet = dayCals > 0 && dayCals <= goal.targetCalories;
+                    } else {
+                        goalMet = dayCals >= goal.targetCalories;
+                    }
+                } else {
+                     goalMet = dayCals > 0;
+                }
+
+                if (workoutDone && goalMet) intensity = 3;
+                else if (workoutDone || goalMet) intensity = 2;
+                else if (dayWorkouts.length > 0 || dayCals > 0) intensity = 1;
+            }
 
             data.push({ date, dateStr, intensity, workoutDone, goalMet, dayCals });
         }
@@ -164,51 +181,6 @@ const ProgressPage = () => {
         </div>
       </div>
 
-      {/* Consistency Graph Card */}
-      <Card className="border-primary/20">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Activity className="h-5 w-5 text-primary"/> Consistency (Last 365 Days)
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ScrollArea className="w-full pb-4">
-            {/* 7 rows * 16px (12px square + 4px gap) = 112px height */}
-            <TooltipProvider delayDuration={0}>
-              <div className="flex flex-col flex-wrap gap-1 content-start h-[108px]">
-                {yearlyData.map((day) => (
-                  <UITooltip key={day.dateStr}>
-                    <TooltipTrigger asChild>
-                      <div className={`w-3 h-3 rounded-[2px] transition-all duration-300 hover:ring-2 hover:ring-primary/50 ${getIntensityColor(day.intensity)}`} />
-                    </TooltipTrigger>
-                    <TooltipContent side="top" className="text-xs space-y-1 p-2">
-                      <p className="font-bold text-[13px] border-b pb-1 mb-1">{format(day.date, "MMM dd, yyyy")}</p>
-                      {day.intensity === 0 ? (
-                        <p className="text-muted-foreground">No activity logged.</p>
-                      ) : (
-                        <>
-                          {day.workoutDone && <p className="flex items-center gap-1 text-primary"><TrendingUp className="h-3 w-3"/> Workout completed</p>}
-                          {day.goalMet && <p className="flex items-center gap-1 text-primary"><Activity className="h-3 w-3"/> Goal met ({day.dayCals} kcal)</p>}
-                          {day.intensity === 1 && <p className="text-muted-foreground">Partial activity (missed goals)</p>}
-                        </>
-                      )}
-                    </TooltipContent>
-                  </UITooltip>
-                ))}
-              </div>
-            </TooltipProvider>
-            <ScrollBar orientation="horizontal" />
-          </ScrollArea>
-          <div className="flex items-center justify-end gap-2 mt-2 text-[10px] text-muted-foreground font-medium">
-            <span>Less</span>
-            <div className={`w-3 h-3 rounded-[2px] ${getIntensityColor(0)}`} />
-            <div className={`w-3 h-3 rounded-[2px] ${getIntensityColor(1)}`} />
-            <div className={`w-3 h-3 rounded-[2px] ${getIntensityColor(2)}`} />
-            <div className={`w-3 h-3 rounded-[2px] ${getIntensityColor(3)}`} />
-            <span>More</span>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* BMI Calculator Card */}
       <Card className="border-primary/20">
@@ -305,6 +277,65 @@ const ProgressPage = () => {
             </div>
           </CardContent>
         </Card>)}
+
+      {/* Consistency Graph Card (Moved to bottom) */}
+      <Card className="border-primary/20">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Activity className="h-5 w-5 text-primary"/> Consistency
+            </CardTitle>
+            <Select value={graphYear} onValueChange={setGraphYear}>
+              <SelectTrigger className="w-[140px] h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="last-365">Last 365 Days</SelectItem>
+                <SelectItem value="2026">2026</SelectItem>
+                <SelectItem value="2025">2025</SelectItem>
+                <SelectItem value="2024">2024</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <ScrollArea className="w-full pb-4">
+            {/* 7 rows * 16px (12px square + 4px gap) = 112px height */}
+            <TooltipProvider delayDuration={0}>
+              <div className="flex flex-col flex-wrap gap-1 content-start h-[108px]">
+                {yearlyData.map((day) => (
+                  <UITooltip key={day.dateStr}>
+                    <TooltipTrigger asChild>
+                      <div className={`w-3 h-3 rounded-[2px] transition-all duration-300 hover:ring-2 hover:ring-primary/50 ${getIntensityColor(day.intensity)}`} />
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="text-xs space-y-1 p-2">
+                      <p className="font-bold text-[13px] border-b pb-1 mb-1">{format(day.date, "MMM dd, yyyy")}</p>
+                      {day.intensity === 0 ? (
+                        <p className="text-muted-foreground">No activity logged.</p>
+                      ) : (
+                        <>
+                          {day.workoutDone && <p className="flex items-center gap-1 text-primary"><TrendingUp className="h-3 w-3"/> Workout completed</p>}
+                          {day.goalMet && <p className="flex items-center gap-1 text-primary"><Activity className="h-3 w-3"/> Goal met ({day.dayCals} kcal)</p>}
+                          {day.intensity === 1 && <p className="text-muted-foreground">Partial activity (missed goals)</p>}
+                        </>
+                      )}
+                    </TooltipContent>
+                  </UITooltip>
+                ))}
+              </div>
+            </TooltipProvider>
+            <ScrollBar orientation="horizontal" />
+          </ScrollArea>
+          <div className="flex items-center justify-end gap-2 mt-2 text-[10px] text-muted-foreground font-medium">
+            <span>Less</span>
+            <div className={`w-3 h-3 rounded-[2px] ${getIntensityColor(0)}`} />
+            <div className={`w-3 h-3 rounded-[2px] ${getIntensityColor(1)}`} />
+            <div className={`w-3 h-3 rounded-[2px] ${getIntensityColor(2)}`} />
+            <div className={`w-3 h-3 rounded-[2px] ${getIntensityColor(3)}`} />
+            <span>More</span>
+          </div>
+        </CardContent>
+      </Card>
     </div>);
 };
 export default ProgressPage;
