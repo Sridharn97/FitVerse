@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import confetti from "canvas-confetti";
 import { useFitness } from "@/contexts/FitnessContext";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -38,6 +39,7 @@ const Diet = () => {
     const [targetCals, setTargetCals] = useState("");
     const [trackingMode, setTrackingMode] = useState("static");
     const [dateFilter, setDateFilter] = useState("today");
+    const [hasCelebrated, setHasCelebrated] = useState(false);
     
     const todayStr = format(new Date(), "yyyy-MM-dd");
     const now = new Date();
@@ -101,11 +103,28 @@ const Diet = () => {
     const isCompleted = activeTarget > 0 ? dailyAvgCalories >= activeTarget : false;
     const remaining = activeTarget - dailyAvgCalories;
     
+    const proteinTarget = goal ? Math.round(goal.targetCalories * 0.3 / 4) : null;
+    const proteinPercent = proteinTarget ? Math.min((dailyAvgProtein / proteinTarget) * 100, 100) : 0;
+    
+    useEffect(() => {
+        if (proteinPercent >= 100 && !hasCelebrated) {
+            confetti({
+                particleCount: 150,
+                spread: 80,
+                origin: { y: 0.6 },
+                colors: ['#3b82f6', '#8b5cf6', '#ef4444', '#f59e0b']
+            });
+            setHasCelebrated(true);
+        } else if (proteinPercent < 100) {
+            setHasCelebrated(false);
+        }
+    }, [proteinPercent, hasCelebrated]);
+
     const getMealsByType = (type) => activeMeals.filter(m => m.mealType === type);
     const macroStats = [
-      { label: "Protein", value: Math.round(dailyAvgProtein), unit: "g", icon: Beef, target: goal ? Math.round(goal.targetCalories * 0.3 / 4) : null },
-      { label: "Carbs", value: Math.round(dailyAvgCarbs), unit: "g", icon: Wheat, target: goal ? Math.round(goal.targetCalories * 0.45 / 4) : null },
-      { label: "Fat", value: Math.round(dailyAvgFat), unit: "g", icon: Droplets, target: goal ? Math.round(goal.targetCalories * 0.25 / 9) : null },
+      { label: "Protein", value: Math.round(dailyAvgProtein), unit: "g", icon: Beef, target: proteinTarget, colorClass: "[&>div]:bg-blue-500 dark:[&>div]:bg-blue-400" },
+      { label: "Carbs", value: Math.round(dailyAvgCarbs), unit: "g", icon: Wheat, target: goal ? Math.round(goal.targetCalories * 0.45 / 4) : null, colorClass: "[&>div]:bg-orange-500 dark:[&>div]:bg-orange-400" },
+      { label: "Fat", value: Math.round(dailyAvgFat), unit: "g", icon: Droplets, target: goal ? Math.round(goal.targetCalories * 0.25 / 9) : null, colorClass: "[&>div]:bg-red-500 dark:[&>div]:bg-red-400" },
     ];
     return (<div className="space-y-6">
       {/* Header */}
@@ -295,7 +314,7 @@ const Diet = () => {
 
       {/* Macro Overview */}
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
-        {macroStats.map(({ label, value, unit, icon: Icon, target }) => {
+        {macroStats.map(({ label, value, unit, icon: Icon, target, colorClass }) => {
             const pct = target ? Math.min((value / target) * 100, 100) : 0;
             return (<Card key={label}>
               <CardContent className="p-5">
@@ -307,7 +326,7 @@ const Diet = () => {
                   <span className="text-lg font-bold text-foreground">{value}{unit}</span>
                 </div>
                 {target && (<>
-                    <Progress value={pct} className="h-1.5"/>
+                    <Progress value={pct} className={`h-1.5 ${colorClass}`}/>
                     <p className="text-xs text-muted-foreground mt-1.5">{isToday ? "Target" : "Daily Target"}: {target}{unit}</p>
                   </>)}
               </CardContent>
