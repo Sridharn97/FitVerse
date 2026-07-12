@@ -121,6 +121,19 @@ const ProgressPage = () => {
     };
     
     const yearlyData = generateYearlyData();
+    
+    // Group by month
+    const groupedByMonth = [];
+    yearlyData.forEach(day => {
+        const monthKey = format(day.date, "MMM yyyy");
+        let monthGroup = groupedByMonth.find(m => m.key === monthKey);
+        if (!monthGroup) {
+            monthGroup = { key: monthKey, label: format(day.date, "MMM"), days: [] };
+            groupedByMonth.push(monthGroup);
+        }
+        monthGroup.days.push(day);
+    });
+
     const getIntensityColor = (intensity) => {
         switch(intensity) {
             case 3: return "bg-primary shadow-[0_0_4px_rgba(var(--primary),0.6)]";
@@ -300,27 +313,33 @@ const ProgressPage = () => {
         </CardHeader>
         <CardContent>
           <ScrollArea className="w-full pb-4">
-            {/* 7 rows * 16px (12px square + 4px gap) = 112px height */}
             <TooltipProvider delayDuration={0}>
-              <div className="flex flex-col flex-wrap gap-1 content-start h-[108px]">
-                {yearlyData.map((day) => (
-                  <UITooltip key={day.dateStr}>
-                    <TooltipTrigger asChild>
-                      <div className={`w-3 h-3 rounded-[2px] transition-all duration-300 hover:ring-2 hover:ring-primary/50 ${getIntensityColor(day.intensity)}`} />
-                    </TooltipTrigger>
-                    <TooltipContent side="top" className="text-xs space-y-1 p-2">
-                      <p className="font-bold text-[13px] border-b pb-1 mb-1">{format(day.date, "MMM dd, yyyy")}</p>
-                      {day.intensity === 0 ? (
-                        <p className="text-muted-foreground">No activity logged.</p>
-                      ) : (
-                        <>
-                          {day.workoutDone && <p className="flex items-center gap-1 text-primary"><TrendingUp className="h-3 w-3"/> Workout completed</p>}
-                          {day.goalMet && <p className="flex items-center gap-1 text-primary"><Activity className="h-3 w-3"/> Goal met ({day.dayCals} kcal)</p>}
-                          {day.intensity === 1 && <p className="text-muted-foreground">Partial activity (missed goals)</p>}
-                        </>
-                      )}
-                    </TooltipContent>
-                  </UITooltip>
+              <div className="flex gap-4">
+                {groupedByMonth.map((month) => (
+                  <div key={month.key} className="flex flex-col">
+                    <span className="text-[10px] font-medium text-muted-foreground mb-1.5">{month.label}</span>
+                    <div className="flex flex-col flex-wrap gap-1 content-start h-[108px]">
+                      {month.days.map((day) => (
+                        <UITooltip key={day.dateStr}>
+                          <TooltipTrigger asChild>
+                            <div className={`w-3 h-3 rounded-[2px] transition-all duration-300 hover:ring-2 hover:ring-primary/50 ${getIntensityColor(day.intensity)}`} />
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="text-xs space-y-1 p-2">
+                            <p className="font-bold text-[13px] border-b pb-1 mb-1">{format(day.date, "MMM dd, yyyy")}</p>
+                            {day.intensity === 0 ? (
+                              <p className="text-muted-foreground">No activity logged.</p>
+                            ) : (
+                              <>
+                                {day.workoutDone && <p className="flex items-center gap-1 text-primary"><TrendingUp className="h-3 w-3"/> Workout completed</p>}
+                                {day.goalMet && <p className="flex items-center gap-1 text-primary"><Activity className="h-3 w-3"/> Goal met ({day.dayCals} kcal)</p>}
+                                {day.intensity === 1 && <p className="text-muted-foreground">Partial activity (missed goals)</p>}
+                              </>
+                            )}
+                          </TooltipContent>
+                        </UITooltip>
+                      ))}
+                    </div>
+                  </div>
                 ))}
               </div>
             </TooltipProvider>
